@@ -1,4 +1,3 @@
-# test_bdd.py
 from airflow_bdd import airflow_bdd
 from airflow_bdd.scenario import Scenario
 from airflow_bdd.steps.dag_steps import a_dag, dag, a_task, get_dag, render_the_task, execution_date, execute_the_task

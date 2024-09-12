@@ -1,4 +1,3 @@
-# bdd.py
 from functools import wraps
 import inspect
 from airflow_bdd.scenario import Scenario
