@@ -35,7 +35,7 @@ class GivenExecutionDate(GivenStep):
         else:
             raise ValueError(
                 f"execution_date must be a string or a pendulum.DateTime, got {type(execution_date)}"
-            )        
+            )
 
     def __call__(self, context: Context):
         context["execution_date"] = self.execution_date
@@ -102,9 +102,20 @@ class WhenIRenderTheTask(WhenStep):
         context["task_instance"] = ti
 
 
+class WhenIExecuteTheTask(WhenStep):
+    def __call__(self, context: Context):
+        """Execute the task and save the results."""
+        ti = context["task_instance"]
+        if not ti:
+            raise ValueError("""Could not find a task_instance in the context. You need to explicitly
+                             call render_the_task before calling execute_the_task""")
+        context["output"] = ti.task.execute(ti.get_template_context())
+
+
 a_dag = GivenDAG
 dag = GivenDAG
 a_task = GivenTask
 execution_date = GivenExecutionDate
 get_dag = WhenIGetDAG
 render_the_task = WhenIRenderTheTask
+execute_the_task = WhenIExecuteTheTask
