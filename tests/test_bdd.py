@@ -1,7 +1,7 @@
 # test_bdd.py
 from airflow_bdd import airflow_bdd
 from airflow_bdd.scenario import Scenario
-from airflow_bdd.steps.dag_steps import a_dag, dag, a_task, get_dag, render_the_task, execution_date
+from airflow_bdd.steps.dag_steps import a_dag, dag, a_task, get_dag, render_the_task, execution_date, execute_the_task
 from airflow_bdd.steps.hamcrest_steps import it_should, task_should, dag_should
 from hamcrest import instance_of, has_property, has_length, equal_to
 from airflow.models.dag import DAG
@@ -87,3 +87,20 @@ def test_with_pytest_params(bdd: Scenario, task_id):
     bdd.given(a_dag())
     bdd.and_given(a_task(EmptyOperator(task_id=task_id)))
     bdd.then(it_should(has_property("task_id", equal_to(task_id))))
+
+
+@airflow_bdd()
+def test_execute_task(bdd: Scenario):
+    """As a developer
+    I want to execute a task
+    So that I can test the output
+    """
+    bdd.given(a_dag())
+    bdd.and_given(execution_date("2020-01-01"))
+    bdd.and_given(
+        a_task(
+            BashOperator(task_id="task", bash_command="echo hello"))
+    )
+    bdd.when_I(render_the_task())
+    bdd.and_when(execute_the_task())
+    bdd.then(it_should(equal_to("hello")))
