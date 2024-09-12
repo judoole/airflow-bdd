@@ -1,16 +1,19 @@
 # bdd.py
 from functools import wraps
-from datetime import datetime
 import inspect
 from airflow_bdd.scenario import Scenario
 
-    
 
 class AirflowBDD:
     def __init__(self):
-        self.singleton = Scenario()  # Singleton object created once
+        # The scenario instance that will
+        # contain the context and steps for this test
+        self.scenario = Scenario()
 
     def __call__(self, func):
+        """This is a decorator that wraps the test function.
+        It pops the first argument from the args list, which 
+        is the scenario instance."""
         # Get the original function signature
         sig = inspect.signature(func)
 
@@ -23,13 +26,14 @@ class AirflowBDD:
             # Remove the first argument from args
             if args:
                 args = args[1:]
-            return func(self.singleton, *args, **kwargs)
+            return func(self.scenario, *args, **kwargs)
 
         # Assign the new signature to the wrapped function
         wrapper.__signature__ = new_sig
         return wrapper
 
-    def __enter__(self):        
+    def __enter__(self):
+        # Experimental... not sure if this is the right approach
         return self.context
 
 
