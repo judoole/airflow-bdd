@@ -1,13 +1,14 @@
 # test_bdd.py
 from airflow_bdd import airflow_bdd
 from airflow_bdd.scenario import Scenario
-from airflow_bdd.steps.dag_steps import a_dag, a_task, get_dag, render_the_task, execution_date
+from airflow_bdd.steps.dag_steps import a_dag, dag, a_task, get_dag, render_the_task, execution_date
 from airflow_bdd.steps.hamcrest_steps import it_should, task_should, dag_should
 from hamcrest import instance_of, has_property, has_length, equal_to
 from airflow.models.dag import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.bash import BashOperator
 import pytest
+import pendulum
 
 
 @pytest.mark.skip("This test is not working")
@@ -21,6 +22,17 @@ def test_with_context_manager():
 def test_given_a_dag(bdd: Scenario):
     bdd.given(a_dag())
     bdd.then(it_should(instance_of(DAG)))
+
+
+@airflow_bdd()
+def test_given_the_dag(bdd: Scenario):
+    bdd.given(dag(DAG(
+        dag_id="my_dag",
+        schedule_interval=None,
+        start_date=pendulum.today("UTC").add(365),
+    )))
+    bdd.when_I(get_dag())
+    bdd.then(it_should(has_property("dag_id", equal_to("my_dag"))))
 
 
 @airflow_bdd()
