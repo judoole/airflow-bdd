@@ -10,7 +10,12 @@ from airflow.operators.python import PythonOperator
 import pytest
 import pendulum
 from unittest import mock
-import datetime
+import os
+
+# Get DAGs folder relative to this file, using os.path.dirname
+# The dags folder is in tests/test_dags
+os.path.dirname(__file__)
+TEST_DAGS_FOLDER = os.path.join(os.path.dirname(__file__), "test_dags")
 
 
 @pytest.mark.skip("This test is not working")
@@ -111,7 +116,7 @@ def test_should_be_able_to_load_dagbag(bdd: Scenario):
     """As a developer
     I want to load a given folder with DAGs
     So that I can do asserts on my entire DagBag"""
-    bdd.given(dagbag("/Users/judoole/Code/github/AirflowBDD/tests/test_dags"))
+    bdd.given(dagbag(TEST_DAGS_FOLDER))
     bdd.then(it_should(has_property("dags", has_length(1))))
     bdd.then(it_should(has_property("import_errors", has_length(1))))
 
@@ -121,28 +126,20 @@ def test_should_be_get_dag_from_dagbag(bdd: Scenario):
     """As a developer
     I want to get a dag from the DagBag
     So that I can assert that my production code works"""
-    bdd.given(dagbag("/Users/judoole/Code/github/AirflowBDD/tests/test_dags"))
+    bdd.given(dagbag(TEST_DAGS_FOLDER))
     bdd.and_given(dag("simple_dag"))
     bdd.then(it_should(has_property("dag_id", "simple_dag")))
     bdd.then(it_should(has_property("task_count", 1)))
 
 
 @airflow_bdd()
-def test_should_work_with_mock(bdd: Scenario):
+def test_should_pick_up_env_var_for_dags_folder(bdd: Scenario):
     """As a developer
-    I want to use unittest mock with airflow_bdd
-    So that I can unit test operators etc"""
+    I want to set the dags folder using an environment variable
+    And the env var should be the default AIRFLOW__CORE__DAGS_FOLDER
+    So that I can specify dags folder outside tests"""
 
-    with mock.patch("random.randint") as mock_randint:
-        import random
-        mock_randint.return_value = 100
-
-        bdd.given(a_dag())
-        bdd.and_given(a_task(
-            PythonOperator(
-                task_id="task",
-                python_callable=lambda: random.randint(1, 1000)
-            )
-        ))
-        bdd.and_when(execute_the_task())
-        bdd.then(it_should(equal_to(100)))
+    with mock.patch.dict(os.environ, {'AIRFLOW__CORE__DAGS_FOLDER': TEST_DAGS_FOLDER}):
+        bdd.given(dagbag())
+        bdd.then(it_should(has_property("dags", has_length(1))))
+        bdd.then(it_should(has_property("import_errors", has_length(1))))

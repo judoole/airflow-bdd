@@ -3,7 +3,7 @@ from typing import Any
 import pendulum
 import uuid
 from airflow.utils.session import provide_session
-import logging
+import os
 
 
 class GivenDAG(GivenStep):
@@ -59,8 +59,9 @@ class GivenTask(GivenStep):
 
 
 class GivenDagBag(GivenStep):
-    def __init__(self, dags_folder: str):
-        self.dags_folder = dags_folder
+    def __init__(self, dags_folder: str = None):
+        self.dags_folder = dags_folder or os.environ.get(
+            'AIRFLOW__CORE__DAGS_FOLDER')
 
     def __call__(self, context: Context):
         # Capture warnings
