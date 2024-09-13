@@ -10,7 +10,7 @@
 
 ## Installation
 
-TODO
+No pypi yet, but you can test it with `pip install git+https://github.com/judoole/airflow-bdd.git`
 
 ## Usage
 
