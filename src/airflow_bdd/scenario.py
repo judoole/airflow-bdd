@@ -8,6 +8,9 @@ class Context:
     def __setitem__(self, key, value):
         self.context[key] = value
         self.context["it"] = value
+    
+    def __contains__(self, key):
+        return key in self.context
 
     def it(self):
         return self.context["it"]
@@ -32,7 +35,8 @@ class Scenario:
     """A scenario is in BDD terms an acceptance criteria.
     We therefore have methods for given, when and then.
     """
-    context = Context()    
+    def __init__(self):
+        self.context = Context()
 
     def given(self, GivenStep):
         """A given step is a precondition to the test.

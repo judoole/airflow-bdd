@@ -98,12 +98,10 @@ def test_execute_task(bdd: Scenario):
     So that I can test the output
     """
     bdd.given(a_dag())
-    bdd.and_given(execution_date("2020-01-01"))
     bdd.and_given(
         a_task(
             BashOperator(task_id="task", bash_command="echo hello"))
     )
-    bdd.when_I(render_the_task())
     bdd.and_when(execute_the_task())
     bdd.then(it_should(equal_to("hello")))
 
@@ -140,13 +138,11 @@ def test_should_work_with_mock(bdd: Scenario):
         mock_randint.return_value = 100
 
         bdd.given(a_dag())
-        bdd.and_given(execution_date("2021-12-12"))
         bdd.and_given(a_task(
             PythonOperator(
                 task_id="task",
                 python_callable=lambda: random.randint(1, 1000)
             )
         ))
-        bdd.when_I(render_the_task())
         bdd.and_when(execute_the_task())
         bdd.then(it_should(equal_to(100)))

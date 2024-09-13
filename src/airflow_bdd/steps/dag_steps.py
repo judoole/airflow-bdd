@@ -84,6 +84,9 @@ class WhenIGetDAG(WhenStep):
 class WhenIRenderTheTask(WhenStep):
     @provide_session
     def __call__(self, context: Context, session=None):
+        if "execution_date" not in context:
+            GivenExecutionDate(pendulum.now())(context)
+
         from airflow.models.dagrun import DagRun
         from airflow.models.xcom import XCom
         from airflow.utils.state import State
@@ -121,6 +124,8 @@ class WhenIRenderTheTask(WhenStep):
 class WhenIExecuteTheTask(WhenStep):
     def __call__(self, context: Context):
         """Execute the task and save the results."""
+        if "task_instance" not in context:
+            WhenIRenderTheTask()(context)
         ti = context["task_instance"]
         if not ti:
             raise ValueError("""Could not find a task_instance in the context. You need to explicitly
