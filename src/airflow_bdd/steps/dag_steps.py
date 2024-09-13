@@ -12,6 +12,12 @@ class GivenDAG(GivenStep):
 
     def __call__(self, context: Context):
         from airflow.models.dag import DAG
+        from airflow.models import DagBag
+
+        if isinstance(self.dag, str):
+            dagbag: DagBag = context["dagbag"]
+            self.dag = dagbag.get_dag(self.dag)
+
         if not self.dag:
             self.dag = DAG(
                 # create a unique dag_id
@@ -50,6 +56,24 @@ class GivenTask(GivenStep):
         dag: DAG = context["dag"]
         dag.add_task(self.task)
         context["task"] = self.task
+
+
+class GivenDagBag(GivenStep):
+    def __init__(self, dags_folder: str):
+        self.dags_folder = dags_folder
+
+    def __call__(self, context: Context):
+        # Capture warnings
+        import warnings
+        from airflow.models import DagBag
+
+        with warnings.catch_warnings(record=True) as captured_warnings:
+            warnings.simplefilter("always")
+            dagbag = DagBag(dag_folder=self.dags_folder,
+                            include_examples=False)
+
+        context["dag_bag_warnings"] = captured_warnings
+        context["dagbag"] = dagbag
 
 
 class WhenIGetDAG(WhenStep):
@@ -107,6 +131,7 @@ class WhenIExecuteTheTask(WhenStep):
 a_dag = GivenDAG
 dag = GivenDAG
 a_task = GivenTask
+dagbag = GivenDagBag
 execution_date = GivenExecutionDate
 get_dag = WhenIGetDAG
 render_the_task = WhenIRenderTheTask

@@ -5,6 +5,7 @@ import tempfile
 import os
 from airflow_bdd.db_init import init_airflow_db
 
+
 class AirflowBDD:
     def __init__(self, airflow_home: str = None):
         # The scenario instance that will
@@ -30,11 +31,11 @@ class AirflowBDD:
             # If self.airflow_home is not set, create a temporary directory
             # and set it as the AIRFLOW_HOME environment variable
             # TODO: This does not look good...
-            init_airflow_db(self.airflow_home)            
+            init_airflow_db(self.airflow_home)
 
             # Remove the first argument from args
-            if args:
-                args = args[1:]
+            #if args:
+            #    args = args[1:]
             return func(self.scenario, *args, **kwargs)
 
         # Assign the new signature to the wrapped function
