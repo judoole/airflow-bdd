@@ -6,7 +6,9 @@ __default = None
 
 
 def init_airflow_db(airflow_home: str):
-    """Initialize the Airflow database"""
+    """Initialize the Airflow database.
+    We try to do this ONLY ONCE
+    """
     global __default
     if not airflow_home and not __default:
         __default = tempfile.mkdtemp()
