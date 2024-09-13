@@ -39,3 +39,7 @@ def test_given_a_tasks_on_a_dag(bdd: Scenario):
 This example creates a DAG, adds two tasks, and then asserts, using hamcrest that the task count of the DAG is 2.
 
 There is a lot of other ways to use the tool as well. Take a look into the `tests` folder for more examples.
+
+## Creation your own steps
+
+Basically it is just creating a function is able to receive a [Context](https://github.com/judoole/airflow-bdd/blob/daed1195e459a8adaef281463117984de7b55a23/src/airflow_bdd/core/scenario.py#L1) object. Take inspiration from the code in [steps folder](https://github.com/judoole/airflow-bdd/tree/main/src/airflow_bdd/steps).
