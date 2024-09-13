@@ -17,6 +17,9 @@ class Context:
     
     def __contains__(self, key):
         return key in self.context
+    
+    def set_it(self, value):
+        self.context["it"] = value
 
     def it(self):
         return self.context["it"]

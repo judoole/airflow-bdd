@@ -119,6 +119,7 @@ class WhenIRenderTheTask(WhenStep):
         # so we can access them late, in the then statements
         ti.render_templates()
         context["task_instance"] = ti
+        context.set_it(context["task"])
 
 
 class WhenIExecuteTheTask(WhenStep):

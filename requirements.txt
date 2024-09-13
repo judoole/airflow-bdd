@@ -1,5 +1,8 @@
 apache-airflow
-pytest
+# Provider specific
+apache-airflow-providers-google
 pytest-html
 PyHamcrest
--c "https://raw.githubusercontent.com/apache/airflow/constraints-2.8.3/constraints-3.9.txt"
+# For actual testing
+pytest
+-c "https://raw.githubusercontent.com/apache/airflow/constraints-2.8.3/constraints-3.8.txt"

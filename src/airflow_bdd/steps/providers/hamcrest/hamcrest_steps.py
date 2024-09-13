@@ -24,6 +24,7 @@ class ThenDAGShould(ThenStep):
     def __call__(self, context: Context):
         assert_that(context["dag"], self.matcher)
 
+it_ = ThenItShould
 it_should = ThenItShould
 task_should = ThenTaskShould
 dag_should = ThenDAGShould
