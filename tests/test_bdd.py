@@ -129,24 +129,24 @@ def test_should_be_get_dag_from_dagbag(bdd: Scenario):
     bdd.then(it_should(has_property("task_count", 1)))
 
 
-@pytest.mark.skip("This test is not working")
-@mock.patch("datetime.datetime")
 @airflow_bdd()
-def test_should_work_with_mock(bdd: Scenario, mock_datetime):
+def test_should_work_with_mock(bdd: Scenario):
     """As a developer
     I want to use unittest mock with airflow_bdd
     So that I can unit test operators etc"""
 
-    mock_datetime.now.return_value = datetime.datetime(2024, 1, 1, 12, 0, 0)
+    with mock.patch("random.randint") as mock_randint:
+        import random
+        mock_randint.return_value = 100
 
-    bdd.given(a_dag())
-    bdd.and_given(execution_date("2021-12-12"))
-    bdd.and_given(a_task(
-        PythonOperator(
-            task_id="task",
-            python_callable=lambda: print(datetime.datetime.now())
-        )
-    ))
-    bdd.when_I(render_the_task())
-    bdd.and_when(execute_the_task())
-    bdd.then(it_should(equal_to("2024-01-01 12:00:00")))
+        bdd.given(a_dag())
+        bdd.and_given(execution_date("2021-12-12"))
+        bdd.and_given(a_task(
+            PythonOperator(
+                task_id="task",
+                python_callable=lambda: random.randint(1, 1000)
+            )
+        ))
+        bdd.when_I(render_the_task())
+        bdd.and_when(execute_the_task())
+        bdd.then(it_should(equal_to(100)))
