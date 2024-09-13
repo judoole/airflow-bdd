@@ -1,13 +1,16 @@
 from functools import wraps
 import inspect
 from airflow_bdd.scenario import Scenario
-
+import tempfile
+import os
+from airflow_bdd.db_init import init_airflow_db
 
 class AirflowBDD:
-    def __init__(self):
+    def __init__(self, airflow_home: str = None):
         # The scenario instance that will
         # contain the context and steps for this test
         self.scenario = Scenario()
+        self.airflow_home = airflow_home
 
     def __call__(self, func):
         """This is a decorator that wraps the test function.
@@ -22,6 +25,13 @@ class AirflowBDD:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
+            # Init airflow, first and foremost
+
+            # If self.airflow_home is not set, create a temporary directory
+            # and set it as the AIRFLOW_HOME environment variable
+            # TODO: This does not look good...
+            init_airflow_db(self.airflow_home)            
+
             # Remove the first argument from args
             if args:
                 args = args[1:]

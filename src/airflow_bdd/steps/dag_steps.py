@@ -65,14 +65,6 @@ class WhenIRenderTheTask(WhenStep):
         from airflow.utils.state import State
         from airflow.utils.types import DagRunType
         from airflow.models.taskinstance import TaskInstance
-
-        # TODO: move this
-        try:
-            from airflow.utils import db
-            db.initdb()
-        except Exception:
-            logging.info("Database already initialized")
-
         """Render the task. This is useful for testing the templated fields."""
         # Delete all previous DagRuns and Xcoms
         session.query(DagRun).delete()
