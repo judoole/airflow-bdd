@@ -1,4 +1,10 @@
 class Context:
+    """The Context object is just a dict, which has notion of "it".
+    "it" is the last value that was put on the context.
+
+    The context object itself keeps all your variables in between steps.
+    So that you can reuse values in later steps.
+    """
     def __init__(self):
         self.context = {}
 
@@ -53,8 +59,13 @@ class Scenario:
         """
         ThenStep(context=self.context)
 
-    and_given = given
-    and_when = when
-    and_then = then
+    # Shorts to make things more readable
+    given_I = given
     when_I = when
     then_I = then
+    and_given = given
+    and_given_I = given
+    and_when = when
+    and_when_I = when
+    and_then = then
+    and_then_I = then    
