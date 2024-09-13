@@ -100,7 +100,6 @@ class WhenIRenderTheTask(WhenStep):
 
         # Create a DagRun
         dag_run = context["dag"].create_dagrun(
-            # dag_id=self.dag.dag_id,
             run_id="test_dag_run",
             execution_date=context["execution_date"],
             start_date=context["execution_date"],
@@ -128,9 +127,7 @@ class WhenIExecuteTheTask(WhenStep):
         if "task_instance" not in context:
             WhenIRenderTheTask()(context)
         ti = context["task_instance"]
-        if not ti:
-            raise ValueError("""Could not find a task_instance in the context. You need to explicitly
-                             call render_the_task before calling execute_the_task""")
+        
         context["output"] = ti.task.execute(ti.get_template_context())
 
 
