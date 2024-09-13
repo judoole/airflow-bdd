@@ -1,5 +1,5 @@
 from airflow_bdd import airflow_bdd
-from airflow_bdd.scenario import Scenario
+from airflow_bdd.core.scenario import Scenario
 from airflow_bdd.steps.dag_steps import a_dag, dag, a_task, get_dag, render_the_task, execution_date, execute_the_task, dagbag
 from airflow_bdd.steps.providers.hamcrest.hamcrest_steps import it_should, task_should, dag_should
 from hamcrest import instance_of, has_property, has_length, equal_to

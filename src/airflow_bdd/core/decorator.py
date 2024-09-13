@@ -1,10 +1,10 @@
 from functools import wraps
 import inspect
-from airflow_bdd.scenario import Scenario
-from airflow_bdd.db_init import init_airflow_db
+from airflow_bdd.core.scenario import Scenario
+from airflow_bdd.core.db_init import init_airflow_db
 
 
-class AirflowBDD:
+class AirflowBDDDecorator:
     def __init__(self, airflow_home: str = None):
         # The scenario instance that will
         # contain the context and steps for this test        
@@ -46,4 +46,4 @@ class AirflowBDD:
         return self.context
 
 
-airflow_bdd = AirflowBDD  # Create an instance of the decorator
+airflow_bdd = AirflowBDDDecorator  # Create an instance of the decorator

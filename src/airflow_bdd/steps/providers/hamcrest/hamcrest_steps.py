@@ -1,4 +1,4 @@
-from airflow_bdd.scenario import Context, ThenStep
+from airflow_bdd.core.scenario import Context, ThenStep
 from hamcrest import assert_that
 
 

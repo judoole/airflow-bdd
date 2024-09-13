@@ -1,4 +1,4 @@
-from airflow_bdd.scenario import Context, GivenStep, WhenStep, ThenStep
+from airflow_bdd.core.scenario import Context, GivenStep, WhenStep, ThenStep
 from typing import Any
 import pendulum
 import uuid

@@ -1,1 +1,1 @@
-from airflow_bdd.runner import AirflowBDD as airflow_bdd
+from airflow_bdd.core.decorator import airflow_bdd
