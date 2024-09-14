@@ -20,6 +20,9 @@ class Context:
     
     def set_it(self, value):
         self.context["it"] = value
+    
+    def add(self, key, value):
+        self[key] = value
 
     def it(self):
         return self.context["it"]
@@ -47,20 +50,20 @@ class Scenario:
     def __init__(self):
         self.context = Context()
 
-    def given(self, GivenStep):
+    def given(self, step: GivenStep):
         """A given step is a precondition to the test.
         """
-        GivenStep(context=self.context)
+        step(context=self.context)
 
-    def when(self, WhenStep):
+    def when(self, step: WhenStep):
         """The when step is the action that triggers the test.
         """
-        WhenStep(context=self.context)
+        step(context=self.context)
 
-    def then(self, ThenStep):
+    def then(self, step: ThenStep):
         """The then step is the assertion.
         """
-        ThenStep(context=self.context)
+        step(context=self.context)
 
     # Shorts to make things more readable
     given_I = given

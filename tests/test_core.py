@@ -1,12 +1,11 @@
 from airflow_bdd import airflow_bdd
 from airflow_bdd.core.scenario import Scenario
-from airflow_bdd.steps.dag_steps import a_dag, dag, a_task, get_dag, render_the_task, execution_date, execute_the_task, dagbag
+from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, get_dag, render_the_task, execution_date, execute_the_task, dagbag
 from airflow_bdd.steps.providers.hamcrest.hamcrest_steps import it_, it_should, task_, dag_
 from hamcrest import instance_of, has_property, has_length, equal_to, is_
 from airflow.models.dag import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
 import pytest
 import pendulum
 from unittest import mock
@@ -36,12 +35,27 @@ def test_given_a_dag(bdd: Scenario):
 
 
 @airflow_bdd()
+def test_without_steps(bdd: Scenario):
+    """As a developer who only likes core methods
+    I want write my own steps
+    So that I use airflow_bdd to test stuff
+    """
+    def assert_is_cherry(context):
+        assert context.it() == "cherry"
+
+    bdd.given(lambda context: context.add("my_tuple", ("apple", "banana", "cherry")))
+    bdd.when(lambda context: context.add("output", context["my_tuple"][2]))
+    bdd.then(assert_is_cherry)
+
+
+
+@airflow_bdd()
 def test_given_the_dag(bdd: Scenario):
     """As a developer
     I want to create a DAG from scratch
     So that I can create tests using specific DAG configurations
     """
-    bdd.given(dag(DAG(
+    bdd.given(the_dag(DAG(
         dag_id="my_dag",
         schedule_interval=None,
         start_date=pendulum.today("UTC").add(365),
@@ -127,9 +141,20 @@ def test_should_be_get_dag_from_dagbag(bdd: Scenario):
     I want to get a dag from the DagBag
     So that I can assert that my production code works"""
     bdd.given(dagbag(TEST_DAGS_FOLDER))
-    bdd.and_given(dag("simple_dag"))
+    bdd.and_given(the_dag("simple_dag"))
     bdd.then(it_(has_property("dag_id", "simple_dag")))
     bdd.then(it_(has_property("task_count", 1)))
+
+
+@airflow_bdd()
+def test_should_be_get_task_from_dag_from_dagbag(bdd: Scenario):
+    """As a developer
+    I want to get a task from a dag from the DagBag
+    So that I can assert that my production code works"""
+    bdd.given(dagbag(TEST_DAGS_FOLDER))
+    bdd.and_given(the_dag("simple_dag"))
+    bdd.and_given(the_task("simpleton_task"))
+    bdd.then(it_(is_(instance_of(EmptyOperator))))
 
 
 @airflow_bdd()

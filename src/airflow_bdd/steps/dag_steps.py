@@ -53,9 +53,13 @@ class GivenTask(GivenStep):
 
     def __call__(self, context: Context):
         from airflow.models.dag import DAG
-        dag: DAG = context["dag"]
-        dag.add_task(self.task)
-        context["task"] = self.task
+        if isinstance(self.task, str):
+            dag: DAG = context["dag"]
+            context["task"] = dag.get_task(self.task)
+        else:
+            dag: DAG = context["dag"]
+            dag.add_task(self.task)
+            context["task"] = self.task
 
 
 class GivenDagBag(GivenStep):
@@ -133,8 +137,9 @@ class WhenIExecuteTheTask(WhenStep):
 
 
 a_dag = GivenDAG
-dag = GivenDAG
+the_dag = GivenDAG
 a_task = GivenTask
+the_task = GivenTask
 dagbag = GivenDagBag
 execution_date = GivenExecutionDate
 get_dag = WhenIGetDAG

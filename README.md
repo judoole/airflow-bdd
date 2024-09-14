@@ -42,7 +42,24 @@ def test_given_a_tasks_on_a_dag(bdd: Scenario):
 
 This example creates a DAG, adds two tasks, and then asserts, using hamcrest that the task count of the DAG is 2.
 
-There is a lot of other ways to use the tool as well. Take a look into the `tests` folder for more examples.
+If you don't like [hamcrest]https://github.com/judoole/airflow-bdd/blob/main/README.md), or otherwise want to write all your steps yourself, you can do so.
+
+```python
+@airflow_bdd()
+def test_without_steps(bdd: Scenario):
+    """As a developer who only likes core methods
+    I want write my own steps
+    So that I use airflow_bdd to test stuff
+    """
+    def assert_is_cherry(context):
+        assert context.it() == "cherry"
+
+    bdd.given(lambda context: context.add("my_tuple", ("apple", "banana", "cherry")))
+    bdd.when(lambda context: context.add("output", context["my_tuple"][2]))
+    bdd.then(assert_is_cherry)
+```
+
+There is a lot of other ways to use the decorator as well. Take a look into the `tests` folder for more examples.
 
 ### Testing dags folder
 
@@ -57,6 +74,16 @@ def test_should_be_able_to_load_dagbag(bdd: Scenario):
     bdd.given(dagbag())
     bdd.then(it_(has_property("dags", has_length(12))))
     bdd.then(it_(has_property("import_errors", has_length(0))))
+
+@airflow_bdd()
+def test_should_be_get_task_from_dag_from_dagbag(bdd: Scenario):
+    """As a developer
+    I want to get a task from a dag from the DagBag
+    So that I can assert that my production code works"""
+    bdd.given(dagbag(TEST_DAGS_FOLDER))
+    bdd.and_given(the_dag("simple_dag"))
+    bdd.and_given(the_task("simpleton_task"))
+    bdd.then(it_(is_(instance_of(EmptyOperator))))
 ```
 
 ### Testing rendering of tasks
