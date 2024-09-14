@@ -16,7 +16,7 @@ No pypi yet, but you can test it with `pip install git+https://github.com/judool
 ## Usage
 
 The usage is done through a decorator, `airflow_bdd`, for which you decorate your test functions.
-That decorator returns a Scenario object, which has methods for `given`, `when` and `then`. These methods takes a parameter of type respective to their name, `GivenStep`, `WhenStep` or `ThenStep`. These are basically `Callable`s that are supplied a dictionary of type [Context](https://github.com/judoole/airflow-bdd/blob/main/src/airflow_bdd/core/scenario.py#L1)
+That decorator returns a Scenario object, which has methods for `given`, `when` and `then`. These methods takes a parameter of type respective to their name, `GivenStep`, `WhenStep` or `ThenStep`. These are basically `Callable`s that are supplied a dictionary of type [Context](https://github.com/judoole/airflow-bdd/blob/main/src/airflow_bdd/core/context.py)
 
 ### Simple example
 
