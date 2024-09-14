@@ -132,3 +132,7 @@ def test_execute_task(bdd: Scenario):
 ## Creation your own steps
 
 Basically it is just creating a function is able to receive a [Context](https://github.com/judoole/airflow-bdd/blob/daed1195e459a8adaef281463117984de7b55a23/src/airflow_bdd/core/scenario.py#L1) object. Take inspiration from the code in [steps folder](https://github.com/judoole/airflow-bdd/tree/main/src/airflow_bdd/steps).
+
+## Contribute
+
+This repo is brand new, so **any** contribution is welcomed warmly.
