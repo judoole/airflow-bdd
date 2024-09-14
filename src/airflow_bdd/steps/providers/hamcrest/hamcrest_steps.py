@@ -27,4 +27,6 @@ class ThenDAGShould(ThenStep):
 it_ = ThenItShould
 it_should = ThenItShould
 task_should = ThenTaskShould
+task_ = ThenTaskShould
 dag_should = ThenDAGShould
+dag_ = ThenDAGShould

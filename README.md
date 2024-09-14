@@ -33,7 +33,7 @@ def test_given_a_tasks_on_a_dag(bdd: Scenario):
     bdd.and_given(a_task(EmptyOperator(task_id="task_1")))
     bdd.and_given(a_task(EmptyOperator(task_id="task_2")))
     bdd.when_I(get_dag())
-    bdd.then(it_should(has_property("task_count", 2)))
+    bdd.then(it_(has_property("task_count", 2)))
 ```
 
 This example creates a DAG, adds two tasks, and then asserts, using hamcrest that the task count of the DAG is 2.
