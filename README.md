@@ -74,13 +74,17 @@ def test_should_be_able_to_load_dagbag(bdd: Scenario):
     bdd.given(dagbag())
     bdd.then(it_(has_property("dags", has_length(12))))
     bdd.then(it_(has_property("import_errors", has_length(0))))
+```
 
+You can also specify dags folder yourself, and do asserts on tasks in DAGs.
+
+```python
 @airflow_bdd()
 def test_should_be_get_task_from_dag_from_dagbag(bdd: Scenario):
     """As a developer
     I want to get a task from a dag from the DagBag
     So that I can assert that my production code works"""
-    bdd.given(dagbag(TEST_DAGS_FOLDER))
+    bdd.given(dagbag("/tmp/my-fancy-dags-folder/"))
     bdd.and_given(the_dag("simple_dag"))
     bdd.and_given(the_task("simpleton_task"))
     bdd.then(it_(is_(instance_of(EmptyOperator))))
