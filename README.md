@@ -1,12 +1,13 @@
 # Airflow BDD
 
-**Airflow BDD** is a testing framework for Apache Airflow that implements Behavior Driven Development (BDD) principles. It allows users to write tests for their Airflow DAGs using a clear and concise syntax, facilitating better collaboration and understanding of the system's behavior.
+**Airflow BDD** is a testing framework for Apache Airflow that implements [Behavior Driven Development (BDD)](https://en.wikipedia.org/wiki/Behavior-driven_development) principles. It allows users to write tests for their Airflow DAGs using a clear and concise syntax, facilitating better collaboration and understanding of the system's behavior.
 
 ## Features
 
 - BDD-style syntax (Given, When, Then) for writing tests
 - Decorator for easy integration with existing tests
-- Reusable objects across test functions
+- Creates isolated temporary AIRFLOW_HOME for each test run
+- Able run tests against "dags folder"
 
 ## Installation
 
@@ -14,7 +15,10 @@ No pypi yet, but you can test it with `pip install git+https://github.com/judool
 
 ## Usage
 
-Using the `airflow_bdd` decorator you can easily shorten the setup parts of your Airflow tests. For example:
+The usage is done through a decorator, `airflow_bdd`, for which you decorate your test functions.
+That decorator returns a Scenario object, which has methods for `given`, `when` and `then`. These methods takes a parameter of type respective to their name, `GivenStep`, `WhenStep` or `ThenStep`. These are basically `Callable`s that are supplied a dictionary of type [Context](https://github.com/judoole/airflow-bdd/blob/main/src/airflow_bdd/core/scenario.py#L1)
+
+### Simple example
 
 ```python
 from airflow_bdd import airflow_bdd
@@ -39,6 +43,60 @@ def test_given_a_tasks_on_a_dag(bdd: Scenario):
 This example creates a DAG, adds two tasks, and then asserts, using hamcrest that the task count of the DAG is 2.
 
 There is a lot of other ways to use the tool as well. Take a look into the `tests` folder for more examples.
+
+### Testing dags folder
+
+This particular test assumes that you have set the environment variable `AIRFLOW__CORE__DAGS_FOLDER` during invocation of the test.
+
+```python
+@airflow_bdd()
+def test_should_be_able_to_load_dagbag(bdd: Scenario):
+    """As a developer
+    I want to check that I have the correct amount of DAGs
+    So that I can be sure that code changes hasn't removed any DAGs"""
+    bdd.given(dagbag())
+    bdd.then(it_(has_property("dags", has_length(12))))
+    bdd.then(it_(has_property("import_errors", has_length(0))))
+```
+
+### Testing rendering of tasks
+
+```python
+@airflow_bdd()
+def test_rendering_of_a_task(bdd: Scenario):
+    """As a developer
+    I want to render a task
+    So that I can assert the rendered template
+    """
+    bdd.given(a_dag())
+    bdd.and_given(execution_date("2020-01-01"))
+    bdd.and_given(a_task(
+        BashOperator(
+            task_id="task",
+            bash_command="echo hello {{ ds }}")),
+    )
+    bdd.when_I(render_the_task())
+    bdd.then(task_(has_property("bash_command", "echo hello 2020-01-01")))
+    bdd.and_then(dag_(has_property("tasks", has_length(1))))
+```
+
+### Testing execute of task
+
+```python
+@airflow_bdd()
+def test_execute_task(bdd: Scenario):
+    """As a developer
+    I want to execute a task
+    So that I can test the output
+    """
+    bdd.given(a_dag())
+    bdd.and_given(
+        a_task(
+            BashOperator(task_id="task", bash_command="echo hello"))
+    )
+    bdd.and_when(execute_the_task())
+    bdd.then(it_(is_(equal_to("hello"))))
+```
 
 ## Creation your own steps
 
