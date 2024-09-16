@@ -53,13 +53,25 @@ class GivenTask(GivenStep):
 
     def __call__(self, context: Context):
         from airflow.models.dag import DAG
-        if isinstance(self.task, str):
-            dag: DAG = context["dag"]
+        if "dag" not in context:
+            GivenDAG()(context)
+        dag: DAG = context["dag"]
+
+        if isinstance(self.task, str):            
             context["task"] = dag.get_task(self.task)
-        else:
-            dag: DAG = context["dag"]
+        else:            
             dag.add_task(self.task)
             context["task"] = self.task
+
+
+class GivenVariable(GivenStep):
+    def __init__(self, key: str, value: Any):
+        self.key = key
+        self.value = value
+
+    def __call__(self, context: Context):
+        from airflow.models import Variable
+        Variable.set(self.key, self.value)
 
 
 class GivenDagBag(GivenStep):
@@ -140,6 +152,7 @@ a_dag = GivenDAG
 the_dag = GivenDAG
 a_task = GivenTask
 the_task = GivenTask
+variable = GivenVariable
 dagbag = GivenDagBag
 execution_date = GivenExecutionDate
 get_dag = WhenIGetDAG

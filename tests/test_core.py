@@ -1,6 +1,7 @@
 from airflow_bdd import airflow_bdd
+from airflow_bdd.core.decorator import AirflowBDDecorator
 from airflow_bdd.core.scenario import Scenario
-from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, get_dag, render_the_task, execution_date, execute_the_task, dagbag
+from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, get_dag, render_the_task, execution_date, execute_the_task, dagbag, variable
 from airflow_bdd.steps.providers.hamcrest.hamcrest_steps import it_, it_should, task_, dag_
 from hamcrest import instance_of, has_property, has_length, equal_to, is_
 from airflow.models.dag import DAG
@@ -10,18 +11,31 @@ import pytest
 import pendulum
 from unittest import mock
 import os
+import tempfile
 
 # Get DAGs folder relative to this file, using os.path.dirname
 # The dags folder is in tests/test_dags
-os.path.dirname(__file__)
-TEST_DAGS_FOLDER = os.path.join(os.path.dirname(__file__), "test_dags")
-
+TESTS_FOLDER = os.path.dirname(__file__)
+TEST_DAGS_FOLDER = os.path.join(TESTS_FOLDER, "test_dags")
+TEST_VARIABLES_FILE = os.path.join(TESTS_FOLDER, "test_variables.json")
 
 @pytest.mark.skip("This test is not working")
 def test_with_context_manager():
     with airflow_bdd() as bdd:
         bdd.given(a_dag())
         bdd.then(it_should(instance_of(DAG)))
+
+
+@airflow_bdd(debug=True)
+def test_ensure_that_we_override_airflow_home(debug: AirflowBDDecorator):
+    """As a developer
+    I want to override the AIRFLOW_HOME environment variable
+    So that I can run tests in an isolated environment"""
+    # Assert that the debug.airflow_home dir contains
+    # airflow.db, print content of airflow_home if not
+    assert os.path.exists(debug.airflow_home)
+    assert os.path.exists(os.path.join(debug.airflow_home, "airflow.db")
+                          ), f"Content of {debug.airflow_home}: {os.listdir(debug.airflow_home)}"
 
 
 @airflow_bdd()
@@ -43,10 +57,10 @@ def test_without_steps(bdd: Scenario):
     def assert_is_cherry(context):
         assert context.it() == "cherry"
 
-    bdd.given(lambda context: context.add("my_tuple", ("apple", "banana", "cherry")))
+    bdd.given(lambda context: context.add(
+        "my_tuple", ("apple", "banana", "cherry")))
     bdd.when(lambda context: context.add("output", context["my_tuple"][2]))
     bdd.then(assert_is_cherry)
-
 
 
 @airflow_bdd()
@@ -168,3 +182,31 @@ def test_should_pick_up_env_var_for_dags_folder(bdd: Scenario):
         bdd.given(dagbag())
         bdd.then(it_(has_property("dags", has_length(1))))
         bdd.then(it_(has_property("import_errors", has_length(1))))
+
+
+@airflow_bdd()
+def test_should_support_adding_variables(bdd: Scenario):
+    """As a developer
+    I want to add variables to the context
+    So that I can use them in my tests"""
+    bdd.given(variable(key="my_key", value="my_value"))
+    bdd.and_given(the_task(BashOperator(task_id="task",
+                  bash_command="echo {{ var.value.my_key }}")))
+    bdd.when_I(execute_the_task())
+    bdd.then(it_(is_(equal_to("my_value"))))
+
+
+@mock.patch.dict(os.environ, {'AIRFLOW__BDD__VARIABLES_FILE': TEST_VARIABLES_FILE})
+@airflow_bdd(airflow_home=tempfile.mkdtemp())
+def test_should_pick_up_env_var_for_variables(bdd: Scenario):
+    """As a developer
+    I want to set an Airflow variables file as an environment variable
+    And the env var should be the default AIRFLOW__BDD__VARIABLES_FILE
+    So that I can specify variables once
+    And that I can use them in my tests
+    """
+
+    bdd.given(the_task(BashOperator(task_id="task",
+                bash_command="echo {{ var.value.test_key }}")))
+    bdd.when_I(execute_the_task())
+    bdd.then(it_(is_(equal_to("test_value"))))
