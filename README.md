@@ -129,6 +129,25 @@ def test_execute_task(bdd: Scenario):
     bdd.then(it_(is_(equal_to("hello"))))
 ```
 
+### Using variables
+
+If you set the environment variable `AIRFLOW__BDD__VARIABLES_FILE` to point to your Airflow variables json file, it will be used during the tests.
+
+If you want to add explicitly, you can do so like this:
+```python
+@airflow_bdd()
+def test_should_support_adding_variables(bdd: Scenario):
+    """As a developer
+    I want to add variables to the context
+    So that I can use them in my tests
+    """
+    bdd.given(variable(key="my_key", value="my_value"))
+    bdd.and_given(the_task(BashOperator(task_id="task",
+                  bash_command="echo {{ var.value.my_key }}")))
+    bdd.when_I(execute_the_task())
+    bdd.then(it_(is_(equal_to("my_value"))))
+```
+
 ## Creation your own steps
 
 Basically it is just creating a function is able to receive a [Context](https://github.com/judoole/airflow-bdd/blob/daed1195e459a8adaef281463117984de7b55a23/src/airflow_bdd/core/scenario.py#L1) object. Take inspiration from the code in [steps folder](https://github.com/judoole/airflow-bdd/tree/main/src/airflow_bdd/steps).
