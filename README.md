@@ -148,6 +148,6 @@ def test_should_support_adding_variables(bdd: Scenario):
     bdd.then(it_(is_(equal_to("my_value"))))
 ```
 
-## Creation your own steps
+## Create your own steps
 
 Basically it is just creating a function is able to receive a [Context](https://github.com/judoole/airflow-bdd/blob/daed1195e459a8adaef281463117984de7b55a23/src/airflow_bdd/core/scenario.py#L1) object. Take inspiration from the code in [steps folder](https://github.com/judoole/airflow-bdd/tree/main/src/airflow_bdd/steps).
