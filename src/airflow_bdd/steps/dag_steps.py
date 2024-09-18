@@ -3,6 +3,7 @@ from typing import Any
 import pendulum
 import uuid
 from airflow.utils.session import provide_session
+from airflow.models.xcom import XCOM_RETURN_KEY
 import os
 
 
@@ -28,6 +29,7 @@ class GivenDAG(GivenStep):
                 # Set start date to 1 year ago
                 start_date=pendulum.today("UTC").add(-365),
             )
+        context[self.dag.dag_id] = self.dag
         context["dag"] = self.dag
 
 
@@ -57,9 +59,9 @@ class GivenTask(GivenStep):
             GivenDAG()(context)
         dag: DAG = context["dag"]
 
-        if isinstance(self.task, str):            
+        if isinstance(self.task, str):
             context["task"] = dag.get_task(self.task)
-        else:            
+        else:
             dag.add_task(self.task)
             context["task"] = self.task
 
@@ -72,6 +74,72 @@ class GivenVariable(GivenStep):
     def __call__(self, context: Context):
         from airflow.models import Variable
         Variable.set(self.key, self.value)
+
+
+class GivenDagRun(GivenStep):
+    def __init__(self,
+                 dag_id: str = None,
+                 execution_date: pendulum.DateTime = None,
+                 state: str = "running",
+                 run_type: str = "manual",
+                 conf: dict = None):
+        self.dag_id = dag_id
+        self.execution_date = execution_date
+        self.state = state
+        self.run_type = run_type
+        self.conf = conf
+
+    @provide_session
+    def __call__(self, context: Context, session=None):
+        if not self.dag_id and "dag" not in context:
+            GivenDAG()(context)
+            self.dag_id = context["dag"].dag_id
+        elif not self.dag_id and "dag" in context:
+            self.dag_id = context["dag"].dag_id
+        if not self.execution_date and "execution_date" not in context:
+            GivenExecutionDate(pendulum.now())(context)
+            self.execution_date = context["execution_date"]
+        elif not self.execution_date and "execution_date" in context:
+            self.execution_date = context["execution_date"]
+
+        dag_run = context[self.dag_id].create_dagrun(
+            run_id=f"test_dag_run_{uuid.uuid4()}",
+            execution_date=self.execution_date,
+            start_date=self.execution_date,
+            state=self.state,
+            run_type=self.run_type,
+            conf=self.conf,
+            session=session,
+        )
+        context["dag_run"] = dag_run
+
+
+class GivenXCom(GivenStep):
+    def __init__(self,
+                 task_id: str,
+                 value: Any,
+                 dag_id: str = None,
+                 key: str = XCOM_RETURN_KEY):
+        self.task_id = task_id
+        self.value = value
+        self.dag_id = dag_id
+        self.key = key
+
+    @provide_session
+    def __call__(self, context: Context, session=None):
+        from airflow.models.dagrun import DagRun
+        if "dag_run" not in context:
+            GivenDagRun(dag_id=self.dag_id)(context)
+        dag_run: DagRun = context["dag_run"]
+        # First the the task instance
+        x_ti = dag_run.get_task_instance(self.task_id, session=session)
+        assert (
+            x_ti is not None
+        ), f"TaskInstance with task_id {self.task_id} does not exist in the DagRun: {dag_run.task_instances}"
+        # Refresh the task instance, from the DAG
+        x_ti.refresh_from_task(context["dag"].get_task(x_ti.task_id))
+        # Push the XCom
+        x_ti.xcom_push(key=self.key, value=self.value, session=session)
 
 
 class GivenDagBag(GivenStep):
@@ -99,36 +167,26 @@ class WhenIGetDAG(WhenStep):
 
 
 class WhenIRenderTheTask(WhenStep):
+    def __init__(self, task_id: str = None) -> None:
+        self.task_id = task_id
+
     @provide_session
     def __call__(self, context: Context, session=None):
         if "execution_date" not in context:
             GivenExecutionDate(pendulum.now())(context)
 
-        from airflow.models.dagrun import DagRun
-        from airflow.models.xcom import XCom
-        from airflow.utils.state import State
-        from airflow.utils.types import DagRunType
         from airflow.models.taskinstance import TaskInstance
-        """Render the task. This is useful for testing the templated fields."""
-        # Delete all previous DagRuns and Xcoms
-        session.query(DagRun).delete()
-        session.query(XCom).delete()
 
         # Create a DagRun
-        dag_run = context["dag"].create_dagrun(
-            run_id="test_dag_run",
-            execution_date=context["execution_date"],
-            start_date=context["execution_date"],
-            state=State.RUNNING,
-            run_type=DagRunType.MANUAL,
-            session=session,
-            conf=None,  # TODO: self.dag_run_conf,
-        )
+        if "dag_run" not in context:
+            GivenDagRun()(context)
+        dag_run = context["dag_run"]
+        self.task_id = self.task_id or context["task"].task_id
         ti: TaskInstance = dag_run.get_task_instance(
-            context["task"].task_id, session=session)
+            self.task_id, session=session)
         assert (
             ti is not None
-        ), f"TaskInstance with task_id {context['task'].task_id} does not exist in the DagRun: {dag_run.get_task_instances(session=session)}"
+        ), f"TaskInstance with task_id {self.task_id} does not exist in the DagRun: {dag_run.get_task_instances(session=session)}"
         ti.refresh_from_task(context["dag"].get_task(ti.task_id))
         # Render the template fields
         # This sets the rendered variables on the self.task instance
@@ -144,7 +202,7 @@ class WhenIExecuteTheTask(WhenStep):
         if "task_instance" not in context:
             WhenIRenderTheTask()(context)
         ti = context["task_instance"]
-        
+
         context["output"] = ti.task.execute(ti.get_template_context())
 
 
@@ -152,6 +210,7 @@ a_dag = GivenDAG
 the_dag = GivenDAG
 a_task = GivenTask
 the_task = GivenTask
+the_xcom = GivenXCom
 variable = GivenVariable
 dagbag = GivenDagBag
 execution_date = GivenExecutionDate
