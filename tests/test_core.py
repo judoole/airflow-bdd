@@ -1,7 +1,7 @@
 from airflow_bdd import airflow_bdd
 from airflow_bdd.core.decorator import AirflowBDDecorator
 from airflow_bdd.core.scenario import Scenario
-from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, get_dag, render_the_task, execution_date, execute_the_task, dagbag, variable
+from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, the_xcom, get_dag, render_the_task, execution_date, execute_the_task, dagbag, variable
 from airflow_bdd.steps.providers.hamcrest.hamcrest_steps import it_, it_should, task_, dag_
 from hamcrest import instance_of, has_property, has_length, equal_to, is_
 from airflow.models.dag import DAG
@@ -18,6 +18,7 @@ import tempfile
 TESTS_FOLDER = os.path.dirname(__file__)
 TEST_DAGS_FOLDER = os.path.join(TESTS_FOLDER, "test_dags")
 TEST_VARIABLES_FILE = os.path.join(TESTS_FOLDER, "test_variables.json")
+
 
 @pytest.mark.skip("This test is not working")
 def test_with_context_manager():
@@ -207,6 +208,22 @@ def test_should_pick_up_env_var_for_variables(bdd: Scenario):
     """
 
     bdd.given(the_task(BashOperator(task_id="task",
-                bash_command="echo {{ var.value.test_key }}")))
+                                    bash_command="echo {{ var.value.test_key }}")))
     bdd.when_I(execute_the_task())
     bdd.then(it_(is_(equal_to("test_value"))))
+
+
+@airflow_bdd()
+def test_should_support_adding_simple_xcom(bdd: Scenario):
+    """As a developer
+    I want to add xcom to the context
+    So that I can use the xcom in rendering of my tests"""
+    #bdd.given(a_dag())
+    bdd.and_given(the_task(BashOperator(task_id="task_1",
+                  bash_command="echo hello")))
+    bdd.and_given(the_task(
+        BashOperator(task_id="task_2",
+                     bash_command="echo {{ ti.xcom_pull(task_ids='task_1') }}")))
+    bdd.and_given(the_xcom(task_id="task_1", value="not hello"))
+    bdd.when_I(render_the_task("task_2"))
+    bdd.then(it_(has_property("bash_command", "echo not hello")))
