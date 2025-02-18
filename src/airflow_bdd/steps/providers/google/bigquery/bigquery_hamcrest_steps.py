@@ -22,6 +22,16 @@ class HasQuery(BaseMatcher):
             "an object with a 'configuration' property containing a 'query' entry where 'query' matches: "
         )
         self.value_matcher.describe_to(description)
+    
+    def describe_mismatch(self, item, mismatch_description):
+        if not has_property("configuration").matches(item):
+            mismatch_description.append_text("No 'configuration' property found")
+        elif not "query" in item.configuration:
+            mismatch_description.append_text("No 'query' entry found in 'configuration'")
+        elif not "query" in item.configuration["query"]:
+            mismatch_description.append_text("No 'query' entry found in 'configuration.query'")
+        else:
+            self.value_matcher.describe_mismatch(item.configuration["query"]["query"], mismatch_description)
 
 
 def has_query(value_matcher):
