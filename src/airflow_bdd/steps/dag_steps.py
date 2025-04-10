@@ -256,7 +256,7 @@ class WhenIRenderTheTasks(WhenStep):
                 task_id, session=session)
             assert (
                 ti is not None
-            ), f"TaskInstance with task_id {self.task_id} does not exist in the DagRun: {dag_run.get_task_instances(session=session)}"
+            ), f"TaskInstance with task_id {task.task_id} does not exist in the DagRun: {dag_run.get_task_instances(session=session)}"
             ti.refresh_from_task(dag_run.dag.get_task(ti.task_id))
             # Render the template fields
             # This sets the rendered variables on the self.task instance
