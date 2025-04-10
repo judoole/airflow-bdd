@@ -66,6 +66,41 @@ class GivenTask(GivenStep):
             context["task"] = self.task
 
 
+class GivenAllTasksOfType(GivenStep):
+    def __init__(self, task_type: Any):
+        # If the task_type is a type, get the class name
+        if isinstance(task_type, type):
+            self.task_type = task_type.__name__
+        else:
+            # If the task_type is a string, use it as is
+            self.task_type = task_type
+
+    def __call__(self, context: Context):
+        from airflow.models.dag import DAG
+        from airflow.models import DagBag
+        if "dagbag" in context:
+            dagbag: DagBag = context["dagbag"]
+            tasks = []
+            for dag in dagbag.dags.values():
+                for task in dag.tasks:
+                    # Check if the task's class name contains the string
+                    if self.task_type in task.__class__.__name__:
+                        tasks.append(task)
+                        continue
+
+                    # If not, check the task's superclasses
+                    for base_class in task.__class__.__mro__:
+                        if self.task_type in base_class.__name__:
+                            tasks.append(task)
+                            break  # Stop checking further superclasses
+            context["tasks"] = tasks
+        elif "dag" in context:
+            raise NotImplementedError("not implemented yet")
+        else:
+            raise ValueError(
+                "dagbag or dag not found in context. Please provide a dagbag or dag in the context.")
+
+
 class GivenVariable(GivenStep):
     def __init__(self, key: str, value: Any):
         self.key = key
@@ -111,6 +146,7 @@ class GivenDagRun(GivenStep):
             conf=self.conf,
             session=session,
         )
+        context[f"dag_run_{self.dag_id}"] = dag_run
         context["dag_run"] = dag_run
 
 
@@ -196,6 +232,39 @@ class WhenIRenderTheTask(WhenStep):
         context.set_it(context["task"])
 
 
+class WhenIRenderTheTasks(WhenStep):
+    @provide_session
+    def __call__(self, context: Context, session=None):
+        if "execution_date" not in context:
+            GivenExecutionDate(pendulum.now())(context)
+
+        from airflow.models.taskinstance import TaskInstance
+        from airflow.models.dagrun import DagRun
+
+        # Iterate through all tasks in the context
+        for task in context["tasks"]:
+            task: TaskInstance = task
+            # Check if DAG is in context
+            if task.dag_id not in context:
+                GivenDAG(dag_or_dag_id=task.dag_id)(context)
+            # Create a DagRun
+            if f"dag_run_{task.dag_id}" not in context:
+                GivenDagRun(dag_id=task.dag_id)(context)
+            dag_run: DagRun = context[f"dag_run_{task.dag_id}"]
+            task_id = task.task_id
+            ti: TaskInstance = dag_run.get_task_instance(
+                task_id, session=session)
+            assert (
+                ti is not None
+            ), f"TaskInstance with task_id {self.task_id} does not exist in the DagRun: {dag_run.get_task_instances(session=session)}"
+            ti.refresh_from_task(dag_run.dag.get_task(ti.task_id))
+            # Render the template fields
+            # This sets the rendered variables on the self.task instance
+            # so we can access them late, in the then statements
+            ti.render_templates()
+        context.set_it(context["tasks"])
+
+
 class WhenIExecuteTheTask(WhenStep):
     def __call__(self, context: Context):
         """Execute the task and save the results."""
@@ -210,10 +279,12 @@ a_dag = GivenDAG
 the_dag = GivenDAG
 a_task = GivenTask
 the_task = GivenTask
+all_tasks_of_type =  GivenAllTasksOfType
 the_xcom = GivenXCom
 variable = GivenVariable
 dagbag = GivenDagBag
 execution_date = GivenExecutionDate
 get_dag = WhenIGetDAG
 render_the_task = WhenIRenderTheTask
+render_the_tasks = WhenIRenderTheTasks
 execute_the_task = WhenIExecuteTheTask

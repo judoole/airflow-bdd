@@ -1,9 +1,9 @@
 from airflow_bdd import airflow_bdd
 from airflow_bdd.core.decorator import AirflowBDDecorator
 from airflow_bdd.core.scenario import Scenario
-from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, the_xcom, get_dag, render_the_task, execution_date, execute_the_task, dagbag, variable
+from airflow_bdd.steps.dag_steps import a_dag, the_dag, the_task, a_task, the_xcom, get_dag, render_the_task, render_the_tasks, execution_date, execute_the_task, dagbag, variable, all_tasks_of_type
 from airflow_bdd.steps.providers.hamcrest.hamcrest_steps import it_, it_should, task_, dag_
-from hamcrest import instance_of, has_property, has_length, equal_to, is_
+from hamcrest import instance_of, has_property, has_length, equal_to, is_, has_items
 from airflow.models.dag import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.bash import BashOperator
@@ -158,7 +158,7 @@ def test_should_be_get_dag_from_dagbag(bdd: Scenario):
     bdd.given(dagbag(TEST_DAGS_FOLDER))
     bdd.and_given(the_dag("simple_dag"))
     bdd.then(it_(has_property("dag_id", "simple_dag")))
-    bdd.then(it_(has_property("task_count", 1)))
+    bdd.then(it_(has_property("task_count", 2)))
 
 
 @airflow_bdd()
@@ -227,3 +227,18 @@ def test_should_support_adding_simple_xcom(bdd: Scenario):
     bdd.and_given(the_xcom(task_id="task_1", value="not hello"))
     bdd.when_I(render_the_task("task_2"))
     bdd.then(it_(has_property("bash_command", "echo not hello")))
+
+
+@airflow_bdd()
+def test_should_be_able_to_find_all_tasks_of_type(bdd: Scenario):
+    """As a developer
+    I want filter all tasks in the DagBag
+    So that I can assert tasks of a specific type"""
+    bdd.and_given(dagbag(TEST_DAGS_FOLDER))
+    bdd.and_given(execution_date("1976-08-13"))
+    bdd.and_given(all_tasks_of_type("BashOperator"))
+    bdd.when_I(render_the_tasks())
+    bdd.then(it_(has_items(instance_of(BashOperator))))
+    bdd.then(it_(has_items(
+        has_property("bash_command", "echo 19760813"),
+    )))
