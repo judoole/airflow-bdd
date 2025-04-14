@@ -201,7 +201,7 @@ def when_I_render_the_task(task_id: str = None, context: Context = None, session
     # so we can access them late, in the then statements
     ti.render_templates()
     context["task_instance"] = ti
-    context.set_it(context["task"])
+    context["task"] = ti.task
 
 
 @bdd
