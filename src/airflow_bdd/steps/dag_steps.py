@@ -247,6 +247,22 @@ def when_I_execute_the_task(context: Context):
     context["output"] = ti.task.execute(ti.get_template_context())
 
 
+@bdd
+@provide_session
+def when_I_get_the_task_instance(task_id: str = None, context: Context = None, session=None):
+    from airflow.models.taskinstance import TaskInstance
+    
+    dag_run = context["dag_run"]
+    task_id = task_id or context["task"].task_id
+    ti: TaskInstance = dag_run.get_task_instance(
+        task_id, session=session)
+    assert (
+        ti is not None
+    ), f"TaskInstance with task_id {task_id} does not exist in the DagRun: {dag_run.get_task_instances(session=session)}"
+    ti.refresh_from_task(context["dag"].get_task(ti.task_id))
+    context["task_instance"] = ti
+
+
 given_a_dag = given_dag
 given_a_task = given_task
 
