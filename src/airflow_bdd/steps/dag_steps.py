@@ -97,7 +97,7 @@ def given_all_tasks_of_type(task_type: Any, context: Context):
 @bdd
 def given_variable(key: str, value: Any, context: Context):
     from airflow.models import Variable
-    Variable.set(key, value)
+    Variable.set(key, value, serialize_json=isinstance(value, dict))
 
 
 @bdd
