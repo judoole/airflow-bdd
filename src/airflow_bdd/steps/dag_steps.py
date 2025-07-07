@@ -1,3 +1,5 @@
+from unittest import mock
+from airflow.models import Connection
 from airflow_bdd.core.context import Context
 from typing import Any
 import pendulum
@@ -6,6 +8,10 @@ from airflow.utils.session import provide_session
 from airflow.models.xcom import XCOM_RETURN_KEY
 import os
 from airflow_bdd.core.decorator import bdd
+try:
+    from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
+except ImportError:
+    BigQueryInsertJobOperator = None
 
 
 @bdd
@@ -243,8 +249,25 @@ def when_I_execute_the_task(context: Context):
     if "task_instance" not in context:
         when_I_render_the_task()
     ti = context["task_instance"]
+    task = ti.task
+        # Only patch if BigQueryInsertJobOperator is available and task is an instance
+    if BigQueryInsertJobOperator and isinstance(task, BigQueryInsertJobOperator):
+        # Patch fields to makes sure we use the BigQuery config for tests
+        task.project_id = context.config.bigquery.project_id
+        task.location = context.config.bigquery.location
+        if task.configuration and "query" in task.configuration:
+            task.configuration["query"]["maximum_bytes_billed"] = context.config.bigquery.maximum_bytes_billed
+            if "destinationTable" in task.configuration["query"]:
+                dest = task.configuration["query"]["destinationTable"]
+                dest["projectId"] = context.config.bigquery.project_id                
+                dest["datasetId"] = context.config.bigquery.dataset_id                
 
-    context["output"] = ti.task.execute(ti.get_template_context())
+    with mock.patch.object(
+        Connection,
+        "get_connection_from_secrets",
+            return_value=Connection(conn_id="test", login="airflow", password="airflow")):
+
+        context["output"] = task.execute(ti.get_template_context())
 
 
 @bdd
