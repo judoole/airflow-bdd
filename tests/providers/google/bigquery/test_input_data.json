@@ -1,4 +1,4 @@
 [
-    {"id": 321, "name": "Clark Kent"},
-    {"id": 654, "name": "Lex Luthor"}
+    {"id": 123, "geog": "POINT(1 1)"},
+    {"id": 124, "geog": "LINESTRING(1 1, 2 2)"}
 ]

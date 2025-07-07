@@ -259,8 +259,9 @@ def when_I_execute_the_task(context: Context):
             task.configuration["query"]["maximum_bytes_billed"] = context.config.bigquery.maximum_bytes_billed
             if "destinationTable" in task.configuration["query"]:
                 dest = task.configuration["query"]["destinationTable"]
-                dest["projectId"] = context.config.bigquery.project_id                
-                dest["datasetId"] = context.config.bigquery.dataset_id                
+                dest["projectId"] = context.config.bigquery.project_id
+                dest["datasetId"] = context.config.bigquery.dataset_id
+                dest["tableId"] = f"{dest['tableId']}_{str(uuid.uuid4())[:5]}"
 
     with mock.patch.object(
         Connection,

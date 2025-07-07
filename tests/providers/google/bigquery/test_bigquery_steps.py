@@ -15,7 +15,7 @@ from airflow_bdd.steps.providers.google.bigquery.bigquery_steps import (
     when_I_query
 )
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
-from hamcrest import not_, assert_that as then, contains_exactly, has_entries, has_length
+from hamcrest import contains_string, not_, assert_that as then, contains_exactly, has_entries, has_length
 import pytest
 pytestmark = pytest.mark.bigquery
 
@@ -28,10 +28,7 @@ def test_given_table():
     """
     given_table(
         table_name="my_table",
-        schema="""[
-    {"name": "id", "type": "INTEGER", "mode": "NULLABLE"},
-    {"name": "name", "type": "STRING", "mode": "REQUIRED"}
-  ]""")
+        schema="tests/providers/google/bigquery/test_schema.json")
     then(it(), exists())
 
 
@@ -48,10 +45,10 @@ def test_insert_data_to_table():
     So that I can test the table
     """
     given_table(
-        table_name="my_table", schema="""[
+        table_name="my_table", schema=[
     {"name": "id", "type": "INTEGER", "mode": "NULLABLE"},
     {"name": "name", "type": "STRING", "mode": "REQUIRED"}
-  ]""")
+  ])
     given_table_data([{"id": 123, "name": "Clark Kent"},
                       {"id": 124, "name": "Lex Luthor"}])
     then(it(), exists())
@@ -64,18 +61,18 @@ def test_table_content():
     So that I can verify data was inserted correctly
     """
     given_table(
-        table_name="my_table", schema="""[
+        table_name="my_table_geog", schema=[
     {"name": "id", "type": "INTEGER", "mode": "NULLABLE"},
-    {"name": "name", "type": "STRING", "mode": "REQUIRED"}
-  ]""")
+    {"name": "geog", "type": "GEOGRAPHY", "mode": "REQUIRED"}
+  ])
     given_table_data([
-        {"id": 123, "name": "Clark Kent"},
-        {"id": 124, "name": "Lex Luthor"}
+        {"id": 123, "geog": "POINT(1 1)"},
+        {"id": 124, "geog": "LINESTRING(1 1, 2 2)"}
     ])
     when_I_get_the_content()
     then(it(), contains_exactly(
-        has_entries(id=123, name="Clark Kent"),
-        has_entries(id=124, name="Lex Luthor")
+        has_entries(id=123, geog="POINT(1 1)"),
+        has_entries(id=124, geog="LINESTRING(1 1, 2 2)")
     ))
     # Test table has correct number of rows
     then(it(), has_length(2))
@@ -87,12 +84,16 @@ def test_table_content_from_json_file():
     I want to load data from a jsonfile into a BigQuery table
     So that I can verify data was inserted correctly
     """
-    given_table_data(table_name="my_inserted_table",
-                     data="tests/providers/google/bigquery/test_input_data.json")
+    given_table(
+        table_name="my_table_geog", schema=[
+    {"name": "id", "type": "INTEGER", "mode": "NULLABLE"},
+    {"name": "geog", "type": "GEOGRAPHY", "mode": "REQUIRED"}
+  ])
+    given_table_data(data="tests/providers/google/bigquery/test_input_data.json")
     when_I_get_the_content()
     then(it(), contains_exactly(
-        has_entries(id=321, name="Clark Kent"),
-        has_entries(id=654, name="Lex Luthor")
+        has_entries(id=124, geog="LINESTRING(1 1, 2 2)"),
+        has_entries(id=123, geog="POINT(1 1)"),
     ))
     # Test table has correct number of rows
     then(it(), has_length(2))
@@ -208,3 +209,4 @@ def test_has_query():
     )
     when_I_render_the_task()
     then(it(), has_query("SELECT '2021-01-01' as date"))
+    then(it(), has_query(contains_string("2021-01-01")))

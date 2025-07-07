@@ -3,7 +3,7 @@ from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 import uuid
 import json
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from google.cloud.bigquery.job import QueryJob
 from google.cloud.bigquery.table import RowIterator, TableReference
@@ -16,10 +16,10 @@ from hamcrest import has_property, has_entry
 
 @bdd
 def given_bigquery_client(
-        project_id: str = None,
-        maximum_bytes_billed: int = None,
-        location: str = None,
-        context: Context = None):
+        project_id: Optional[str] = None,
+        maximum_bytes_billed: Optional[int] = None,
+        location: Optional[str] = None,
+        context: Optional[Context] = None):
     job_config = bigquery.QueryJobConfig()
     job_config.use_legacy_sql = False
     # job_config.dry_run = dry_run
@@ -36,10 +36,10 @@ def given_bigquery_client(
 @bdd
 def given_table(
         table_name: str,
-        schema: Any,
-        project_id: str = None,
-        dataset_id: str = None,
-        context: Context = None):
+        schema: Union[str, List[Dict[str, Any]]],
+        project_id: Optional[str] = None,
+        dataset_id: Optional[str] = None,
+        context: Optional[Context] = None):
     if "bigquery_client" not in context:
         given_bigquery_client(project_id=project_id)
 
@@ -48,9 +48,8 @@ def given_table(
 
     client.create_table(
         table=bigquery.Table(
-            unique_table_id,
-            # TODO: Make some checks on schema being either dict or str
-            schema=json.loads(schema) if isinstance(schema, str) else schema,
+            unique_table_id,            
+            schema=json.loads(open(schema).read()) if isinstance(schema, str) else schema,
         ),
         # TODO: Maybe not ok
         exists_ok=True
