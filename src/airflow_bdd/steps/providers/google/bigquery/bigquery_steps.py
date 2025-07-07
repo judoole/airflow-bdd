@@ -1,3 +1,4 @@
+import csv
 from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 import uuid
@@ -60,7 +61,7 @@ def given_table(
 
 
 @bdd
-def given_table_data(data: Iterable[Dict[str, Any]], context: Context = None):
+def given_table_data(data: Iterable[Dict[str, Any]], table_name: str = None, project_id: str = None, dataset_id: str = None, context: Context = None):
     """Step to insert data into a table in BigQuery."""
     if "bigquery_client" not in context:
         given_bigquery_client()
@@ -69,7 +70,25 @@ def given_table_data(data: Iterable[Dict[str, Any]], context: Context = None):
 
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = "WRITE_TRUNCATE"
-    destination = TableReference.from_string(context["bigquery_table"])
+    if isinstance(data, str):
+        path = data.strip()
+        if path.endswith(".json"):
+            data = json.loads(open(data).read())
+        elif path.endswith(".jsonl"):
+            data = [json.loads(line) for line in open(data).readlines()]
+        elif path.endswith(".csv"):
+            with open(path, newline="") as f:
+                reader = csv.DictReader(f)
+                data = list(reader)
+        else:
+            raise ValueError(f"Unsupported data format: {data}")
+        
+    if table_name:
+        unique_table_id = f"{project_id or context.config.bigquery.project_id}.{dataset_id or context.config.bigquery.dataset_id}.{table_name}_{str(uuid.uuid4())[:5]}"
+        destination = TableReference.from_string(unique_table_id)
+    else:
+        unique_table_id = context["bigquery_table"]
+        destination = TableReference.from_string(context["bigquery_table"])
     load_job = client.load_table_from_json(
         json_rows=data,
         destination=destination,
@@ -77,7 +96,9 @@ def given_table_data(data: Iterable[Dict[str, Any]], context: Context = None):
     )
 
     # Wait for the job to complete
-    load_job.result()
+    load_job.result()    
+    context["bigquery_table"] = unique_table_id
+    context[table_name] = unique_table_id
 
 @bdd
 def when_I_get_the_content(resource: str=None, query: str=None, context: Context = None):

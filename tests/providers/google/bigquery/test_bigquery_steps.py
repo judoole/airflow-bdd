@@ -1,3 +1,4 @@
+import json
 from airflow.models import Connection
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import (
@@ -81,6 +82,57 @@ def test_table_content():
 
 
 @feature()
+def test_table_content_from_json_file():
+    """As a developer
+    I want to load data from a jsonfile into a BigQuery table
+    So that I can verify data was inserted correctly
+    """
+    given_table_data(table_name="my_inserted_table",
+                     data="tests/providers/google/bigquery/test_input_data.json")
+    when_I_get_the_content()
+    then(it(), contains_exactly(
+        has_entries(id=321, name="Clark Kent"),
+        has_entries(id=654, name="Lex Luthor")
+    ))
+    # Test table has correct number of rows
+    then(it(), has_length(2))
+
+
+@feature()
+def test_table_content_from_jsonl_file():
+    """As a developer
+    I want to load data from a file into a BigQuery table
+    So that I can verify data was inserted correctly
+    """
+    given_table_data(table_name="my_inserted_table",
+                     data="tests/providers/google/bigquery/test_input_data.jsonl")
+    when_I_get_the_content()
+    then(it(), contains_exactly(
+        has_entries(id=321, name="Clark Kent"),
+        has_entries(id=654, name="Lex Luthor")
+    ))
+    # Test table has correct number of rows
+    then(it(), has_length(2))
+
+
+@feature()
+def test_table_content_from_csv_file():
+    """As a developer
+    I want to load data from a file into a BigQuery table
+    So that I can verify data was inserted correctly
+    """
+    given_table_data(table_name="my_inserted_table",
+                     data="tests/providers/google/bigquery/test_input_data.csv")
+    when_I_get_the_content()
+    then(it(), contains_exactly(
+        has_entries(id=321, name="Clark Kent"),
+        has_entries(id=654, name="Lex Luthor")
+    ))
+    # Test table has correct number of rows
+    then(it(), has_length(2))
+
+
+@feature()
 def test_query_table():
     """As a developer
     I want to query the content of a BigQuery table
@@ -113,6 +165,8 @@ def test_get_result_from_BigQueryInsertJobOperator():
     given_a_task(
         BigQueryInsertJobOperator(
             task_id="test",
+            # project_id will be overridden by the Airflow BDD config
+            # along with maximum_bytes_billed, dataset_id and location
             project_id="asdfasdfasdf",
             configuration={
                 "query": {
