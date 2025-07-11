@@ -1,0 +1,4 @@
+[
+    {"name": "id", "type": "INTEGER", "mode": "NULLABLE"},
+    {"name": "name", "type": "STRING", "mode": "REQUIRED"}
+  ]

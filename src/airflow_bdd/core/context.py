@@ -1,9 +1,13 @@
 from contextvars import ContextVar
+from typing import Optional
 from airflow.utils.db import provide_session
 from airflow_bdd.core.db_init import init_airflow_db
+from airflow_bdd.core.config import AirflowBddConfig
 
 
-_test_context: ContextVar[dict] = ContextVar("test_context", default=None)
+_test_context: ContextVar[Optional["Context"]] = ContextVar(
+    "test_context", default=None
+)
 _feature_active: ContextVar[bool] = ContextVar("feature_active", default=False)
 
 
@@ -19,9 +23,11 @@ class Context:
                  airflow_home=None,
                  reset_dagruns=True,
                  reset_xcoms=True,
-                 reset_variables=False):
+                 reset_variables=False,
+                 config:AirflowBddConfig=None):
         self.context = {}
         self.context["it"] = None
+        self.config = config
         # Initialize Airflow
         init_airflow_db(airflow_home)
         self._reset_db(
@@ -71,11 +77,13 @@ def _get_context():
 def _reset_context(airflow_home=None,
                    reset_dagruns=True,
                    reset_xcoms=True,
-                   reset_variables=False):
+                   reset_variables=False,
+                   config=None):
     _test_context.set(Context(airflow_home=airflow_home,
                               reset_dagruns=reset_dagruns,
                               reset_xcoms=reset_xcoms,
-                              reset_variables=reset_variables))
+                              reset_variables=reset_variables,
+                              config=config))
 
 
 def _activate_feature():
