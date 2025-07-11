@@ -45,19 +45,39 @@ def find_airflow_bdd_config(test_file_path):
     test_dir = os.path.dirname(test_file_path)
     home_dir = os.path.expanduser("~")
     
+    # Find the tests directory by walking up the directory tree
+    def find_tests_directory(start_path):
+        """Walk up the directory tree to find the tests directory."""
+        current_path = start_path
+        while current_path != os.path.dirname(current_path):  # Stop at root
+            if os.path.basename(current_path) == "tests":
+                return current_path
+            current_path = os.path.dirname(current_path)
+        return None
+    
+    tests_dir = find_tests_directory(test_dir)
+    
     search_locations = [
         # 1. Root directory (where pytest/unittest is typically run from)
         os.path.join(os.getcwd(), "airflow_bdd_config.py"),
-        
-        # 2. Tests directory (if test is in a subdirectory)
-        os.path.join(test_dir, "airflow_bdd_config.py"),
-        
-        # 3. Parent of tests directory (common project structure)
-        os.path.join(os.path.dirname(test_dir), "airflow_bdd_config.py"),
-        
-        # 4. User's home directory (hidden config file)
-        os.path.join(home_dir, ".airflow_bdd_config.py"),
     ]
+    
+    # 2. Tests directory (if found)
+    if tests_dir:
+        search_locations.append(
+            os.path.join(tests_dir, "airflow_bdd_config.py")
+        )
+    
+    # 3. Parent of tests directory (common project structure)
+    if tests_dir:
+        search_locations.append(
+            os.path.join(os.path.dirname(tests_dir), "airflow_bdd_config.py")
+        )
+    
+    # 4. User's home directory (hidden config file)
+    search_locations.append(
+        os.path.join(home_dir, ".airflow_bdd_config.py")
+    )
     
     for config_path in search_locations:
         if os.path.exists(config_path):
