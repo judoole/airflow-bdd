@@ -118,13 +118,35 @@ def when_I_query(query: str):
 
 
 @bdd
-def when_I_get_the_job_result(job_id: str = None, context: Context = None):
+def when_I_get_the_job(job_id: str = None, context: Context = None):
     if "bigquery_client" not in context:
         given_bigquery_client()
     
     client: bigquery.Client = context["bigquery_client"]
     job: QueryJob = client.get_job(job_id=job_id or context["output"])
-    context["query_results"] = [dict(row.items()) for row in job.result()]
+    context["query_job"] = job
+
+@bdd
+def when_I_get_the_job_result(job_id: str = None, context: Context = None):
+    if "query_job" not in context:
+        when_I_get_the_job()
+
+    context["query_results"] = [dict(row.items()) for row in context["query_job"].result()]    
+
+
+@bdd
+def when_I_get_the_table(table_id: str = None, context: Context = None):
+    table_to_get = None
+    if table_id:
+        table_to_get = context[table_id]
+    else:
+        if "query_job" not in context:
+            when_I_get_the_job()
+        table_to_get = context["query_job"].destination
+
+    client: bigquery.Client = context["bigquery_client"]
+    context["bigquery_table"] = client.get_table(table_to_get)
+    context["table"] = context["bigquery_table"]
 
 @bdd
 def bigquery_table_ref(table_name: str, context: Context = None) -> TableReference:
