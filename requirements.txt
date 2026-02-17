@@ -1,8 +1,11 @@
-apache-airflow
+# Core Airflow - version pinned for reproducibility
+# Note: Constraints are applied via pip install command, not here
+apache-airflow==2.8.3
+
 # Provider specific
 apache-airflow-providers-google
+
+# Testing dependencies
+pytest
 pytest-html
 PyHamcrest
-# For actual testing
-pytest
--c "https://raw.githubusercontent.com/apache/airflow/constraints-2.8.3/constraints-3.8.txt"
