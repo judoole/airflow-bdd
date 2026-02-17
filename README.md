@@ -13,6 +13,54 @@
 
 No pypi yet, but you can test it with `pip install git+https://github.com/judoole/airflow-bdd.git`
 
+## Development Setup
+
+This project uses `make` and `pip` for dependency management, following [Airflow's recommended installation practices](https://airflow.apache.org/docs/apache-airflow/2.10.5/installation/installing-from-pypi.html).
+
+### Prerequisites
+
+- Python 3.8+ (recommended: 3.11)
+- `make`
+- `pip`
+
+### Quick Start
+
+1. **Create virtual environment and install dependencies:**
+   ```bash
+   make pip-install
+   ```
+   This will:
+   - Create a virtual environment (`.venv`)
+   - Install Airflow with proper constraints for reproducibility
+   - Install other dependencies
+
+2. **Run tests:**
+   ```bash
+   make test
+   ```
+
+### Available Make Targets
+
+- `make venv` - Create virtual environment
+- `make pip-install` - Install all dependencies (Airflow + others)
+- `make pip-install-airflow` - Install only Airflow with constraints
+- `make pip-install-other` - Install other dependencies without constraints
+- `make test` - Run tests
+- `make test-html` - Run tests with HTML report
+- `make test-ci` - Run tests for CI (skips BigQuery tests)
+- `make check-python` - Check Python version and constraint URL
+- `make clean` - Remove virtual environment
+
+### Python Version
+
+The project auto-detects your Python version for Airflow constraints. You can override the Airflow version:
+
+```bash
+AIRFLOW_VERSION=2.8.3 make pip-install
+```
+
+For pyenv users, a `.python-version` file is included (set to 3.11).
+
 ## Usage
 
 The usage is done through a decorator, @feature, for which you decorate your test functions. The given, when, and then functions are used to define the steps of the test.
