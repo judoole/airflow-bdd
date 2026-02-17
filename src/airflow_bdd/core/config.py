@@ -42,13 +42,15 @@ _config_cache = {}
 
 def find_airflow_bdd_config(test_file_path):
     """Find airflow_bdd_config.py in common locations."""
+    # Normalize the test file path to handle absolute/relative paths
+    test_file_path = os.path.abspath(test_file_path)
     test_dir = os.path.dirname(test_file_path)
     home_dir = os.path.expanduser("~")
     
     # Find the tests directory by walking up the directory tree
     def find_tests_directory(start_path):
         """Walk up the directory tree to find the tests directory."""
-        current_path = start_path
+        current_path = os.path.abspath(start_path)
         while current_path != os.path.dirname(current_path):  # Stop at root
             if os.path.basename(current_path) == "tests":
                 return current_path
