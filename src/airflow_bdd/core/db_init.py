@@ -28,6 +28,19 @@ def init_airflow_db(airflow_home: str):
     if airflow_home not in __those_are_inited:
         from airflow.utils import db
         db.initdb(load_connections=False)
+
+        # Ensure LogTemplate table is synchronized with current config
+        # This fixes an issue in Airflow 2.10+ where LogTemplate may be empty
+        # causing TypeError when creating DagRun
+        from airflow.utils.session import provide_session
+
+        @provide_session
+        def ensure_log_template(session=None):
+            # synchronize_log_template ensures LogTemplate table has at least one entry
+            db.synchronize_log_template(session=session)
+
+        ensure_log_template()
+
         # Load variables into the database if AIRFLOW__BDD__VARIABLES_FILE is set
         if os.environ.get('AIRFLOW__BDD__VARIABLES_FILE'):
             from airflow.models import Variable
