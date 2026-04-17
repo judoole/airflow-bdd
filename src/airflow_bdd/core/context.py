@@ -1,8 +1,8 @@
 from contextvars import ContextVar
 from typing import Optional
-from airflow.utils.db import provide_session
 from airflow_bdd.core.db_init import init_airflow_db
 from airflow_bdd.core.config import AirflowBddConfig
+from airflow_bdd.compat import provide_session
 
 
 _test_context: ContextVar[Optional["Context"]] = ContextVar(
@@ -57,11 +57,11 @@ class Context:
 
     @provide_session
     def _reset_db(self, reset_dagruns, reset_xcoms, reset_variables, session=None):
-        from airflow.models import DagRun, XCom, Variable
+        from airflow_bdd.compat import DagRun, Variable, XComModel
         if reset_dagruns:
             session.query(DagRun).delete()
         if reset_xcoms:
-            session.query(XCom).delete()
+            session.query(XComModel).delete()
         if reset_variables:
             session.query(Variable).delete()
 

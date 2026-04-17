@@ -1,13 +1,20 @@
 from unittest import mock
-from airflow.models import Connection
 from airflow_bdd.core.context import Context
 from typing import Any
 import pendulum
 import uuid
-from airflow.utils.session import provide_session
-from airflow.models.xcom import XCOM_RETURN_KEY
 import os
 from airflow_bdd.core.decorator import bdd
+from airflow_bdd.compat import (
+    Connection,
+    DagBag,
+    DAG,
+    DagRun,
+    TaskInstance,
+    Variable,
+    XCOM_RETURN_KEY,
+    provide_session,
+)
 try:
     from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 except ImportError:
@@ -16,8 +23,6 @@ except ImportError:
 
 @bdd
 def given_dag(dag_or_dag_id: Any = None, context: Context = None):
-    from airflow.models.dag import DAG
-    from airflow.models import DagBag
     dag = dag_or_dag_id
 
     if isinstance(dag, str):
@@ -54,7 +59,6 @@ def given_execution_date(execution_date, context: Context):
 
 @bdd
 def given_task(task: Any, context: Context):
-    from airflow.models.dag import DAG
     if "dag" not in context:
         given_dag()
     dag: DAG = context["dag"]
@@ -75,8 +79,6 @@ def given_all_tasks_of_type(task_type: Any, context: Context):
         # If the task_type is a string, use it as is
         task_type = task_type
 
-    from airflow.models.dag import DAG
-    from airflow.models import DagBag
     if "dagbag" in context:
         dagbag: DagBag = context["dagbag"]
         tasks = []
@@ -102,7 +104,6 @@ def given_all_tasks_of_type(task_type: Any, context: Context):
 
 @bdd
 def given_variable(key: str, value: Any, context: Context):
-    from airflow.models import Variable
     Variable.set(key, value, serialize_json=isinstance(value, dict))
 
 
@@ -145,7 +146,6 @@ def given_xcom(task_id: str,
                dag_id: str = None,
                key: str = XCOM_RETURN_KEY,
                context: Context = None, session=None):
-    from airflow.models.dagrun import DagRun
     if "dag_run" not in context:
         given_dagrun(dag_id=dag_id)
     dag_run: DagRun = context["dag_run"]
@@ -164,7 +164,6 @@ def given_xcom(task_id: str,
 def given_dagbag(dags_folder: str = None, context: Context = None):
     # Capture warnings
     import warnings
-    from airflow.models import DagBag
 
     dags_folder = dags_folder or os.environ.get(
         'AIRFLOW__CORE__DAGS_FOLDER')
@@ -188,8 +187,6 @@ def when_I_get_dag(context: Context):
 def when_I_render_the_task(task_id: str = None, context: Context = None, session=None):
     if "execution_date" not in context:
         given_execution_date(pendulum.now())
-
-    from airflow.models.taskinstance import TaskInstance
 
     # Create a DagRun
     if "dag_run" not in context:
@@ -215,9 +212,6 @@ def when_I_render_the_task(task_id: str = None, context: Context = None, session
 def when_I_render_the_tasks(context: Context = None, session=None):
     if "execution_date" not in context:
         given_execution_date(pendulum.now())
-
-    from airflow.models.taskinstance import TaskInstance
-    from airflow.models.dagrun import DagRun
 
     # Iterate through all tasks in the context
     for task in context["tasks"]:
@@ -274,8 +268,6 @@ def when_I_execute_the_task(context: Context):
 @bdd
 @provide_session
 def when_I_get_the_task_instance(task_id: str = None, context: Context = None, session=None):
-    from airflow.models.taskinstance import TaskInstance
-    
     dag_run = context["dag_run"]
     task_id = task_id or context["task"].task_id
     ti: TaskInstance = dag_run.get_task_instance(

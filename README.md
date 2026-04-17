@@ -15,11 +15,11 @@ No pypi yet, but you can test it with `pip install git+https://github.com/judool
 
 ## Development Setup
 
-This project uses `make` and `pip` for dependency management, following [Airflow's recommended installation practices](https://airflow.apache.org/docs/apache-airflow/2.10.5/installation/installing-from-pypi.html).
+This project uses `make` and `pip` for dependency management, following [Airflow's recommended installation practices](https://airflow.apache.org/docs/apache-airflow/3.1.7/installation/installing-from-pypi.html).
 
 ### Prerequisites
 
-- Python 3.8+ (recommended: 3.11)
+- Python 3.11
 - `make`
 - `pip`
 
@@ -34,20 +34,40 @@ This project uses `make` and `pip` for dependency management, following [Airflow
    - Install Airflow with proper constraints for reproducibility
    - Install other dependencies
 
+   For versioned local environments, use:
+   ```bash
+   make pip-install-airflow2
+   make pip-install-airflow3
+   ```
+
 2. **Run tests:**
    ```bash
    make test
    ```
 
+   Or run a versioned compatibility lane:
+   ```bash
+   make test-airflow2
+   make test-airflow3
+   make test-all
+   ```
+
 ### Available Make Targets
 
 - `make venv` - Create virtual environment
+- `make venv-airflow2` - Create the Airflow 2.10.5 virtual environment
+- `make venv-airflow3` - Create the Airflow 3.1.7 virtual environment
 - `make pip-install` - Install all dependencies (Airflow + others)
 - `make pip-install-airflow` - Install only Airflow with constraints
 - `make pip-install-other` - Install other dependencies without constraints
+- `make pip-install-airflow2` - Install the Airflow 2.10.5 lane in its own venv
+- `make pip-install-airflow3` - Install the Airflow 3.1.7 lane in its own venv
 - `make test` - Run tests
 - `make test-html` - Run tests with HTML report
 - `make test-ci` - Run tests for CI (skips BigQuery tests)
+- `make test-airflow2` - Install and run the Airflow 2.10.5 CI lane
+- `make test-airflow3` - Install and run the Airflow 3.1.7 CI lane
+- `make test-all` - Run both compatibility lanes sequentially
 - `make check-python` - Check Python version and constraint URL
 - `make clean` - Remove virtual environment
 
@@ -56,10 +76,30 @@ This project uses `make` and `pip` for dependency management, following [Airflow
 The project auto-detects your Python version for Airflow constraints. You can override the Airflow version:
 
 ```bash
-AIRFLOW_VERSION=2.8.3 make pip-install
+AIRFLOW_VERSION=3.1.7 make pip-install
 ```
 
 For pyenv users, a `.python-version` file is included (set to 3.11).
+
+### Airflow Version Matrix
+
+The default local baseline is Airflow 2.10.5, and the compatibility test lane also runs against Airflow 3.1.7.
+
+To run the suite against Airflow 3.1.7 locally:
+
+```bash
+AIRFLOW_VERSION=3.1.7 make test
+```
+
+To use the dedicated versioned venvs instead of the shared default environment:
+
+```bash
+make venv-airflow2
+make venv-airflow3
+make test-airflow2
+make test-airflow3
+make test-all
+```
 
 ## Usage
 
@@ -70,7 +110,7 @@ The usage is done through a decorator, @feature, for which you decorate your tes
 ```python
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import given_a_dag, given_task, when_I_get_dag, it
-from airflow.operators.empty import EmptyOperator
+from airflow_bdd.compat import EmptyOperator
 from hamcrest import has_property, assert_that as then
 
 @feature()
@@ -83,7 +123,7 @@ def test_given_tasks_on_a_dag():
     given_task(EmptyOperator(task_id="task_1"))
     given_task(EmptyOperator(task_id="task_2"))
     when_I_get_dag()
-    then(it(), has_property("task_count", 2))
+    then(it(), has_property("tasks", has_length(2)))
 ```
 
 This example creates a DAG, adds two tasks, and then asserts, using hamcrest that the task count of the DAG is 2.
@@ -134,7 +174,7 @@ You can also specify the dags folder yourself and do asserts on tasks in DAGs.
 ```python
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import given_dagbag, given_dag, given_task, it
-from airflow.operators.empty import EmptyOperator
+from airflow_bdd.compat import EmptyOperator
 from hamcrest import is_, instance_of, assert_that as then
 
 @feature()
@@ -153,7 +193,7 @@ def test_should_be_get_task_from_dag_from_dagbag():
 ```python
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import given_a_dag, given_execution_date, given_task, when_I_render_the_task, the_task, the_dag
-from airflow.operators.bash import BashOperator
+from airflow_bdd.compat import BashOperator
 from hamcrest import has_property, has_length, assert_that as then
 
 @feature()
@@ -178,7 +218,7 @@ def test_rendering_of_a_task():
 ```python
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import given_a_dag, given_task, when_I_execute_the_task, it
-from airflow.operators.bash import BashOperator
+from airflow_bdd.compat import BashOperator
 from hamcrest import is_, equal_to, assert_that as then
 
 @feature()
@@ -202,7 +242,7 @@ If you want to add variables explicitly, you can do so like this:
 ```python
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import given_variable, given_task, when_I_execute_the_task, it
-from airflow.operators.bash import BashOperator
+from airflow_bdd.compat import BashOperator
 from hamcrest import is_, equal_to, assert_that as then
 
 @feature()

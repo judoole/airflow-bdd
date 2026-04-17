@@ -17,11 +17,9 @@ from airflow_bdd import (
     the_task,
     the_dag,
 )
+from airflow_bdd.compat import DAG, BashOperator, EmptyOperator
 from hamcrest import instance_of, has_property, has_length, equal_to, is_, has_items, not_none
 from hamcrest import assert_that as then
-from airflow.models.dag import DAG
-from airflow.operators.empty import EmptyOperator
-from airflow.operators.bash import BashOperator
 import pytest
 import pendulum
 from unittest import mock
@@ -65,7 +63,7 @@ def test_given_the_dag():
     """
     given_dag(DAG(
         dag_id="my_dag",
-        schedule_interval=None,
+        schedule=None,
         start_date=pendulum.today("UTC").add(365),
     ))
     when_I_get_dag()
@@ -82,7 +80,7 @@ def test_given_a_tasks_on_a_dag():
     given_task(EmptyOperator(task_id="task_1"))
     given_task(EmptyOperator(task_id="task_2"))
     when_I_get_dag()
-    then(it(), has_property("task_count", 2))
+    then(it(), has_property("tasks", has_length(2)))
 
 
 @feature()
@@ -147,7 +145,7 @@ def test_should_be_get_dag_from_dagbag():
     given_dagbag(TEST_DAGS_FOLDER)
     given_dag("simple_dag")
     then(it(), has_property("dag_id", "simple_dag"))
-    then(it(), has_property("task_count", 2))
+    then(it(), has_property("tasks", has_length(2)))
 
 
 @feature()

@@ -1,6 +1,6 @@
 # Core Airflow - version pinned for reproducibility
 # Note: Constraints are applied via pip install command, not here
-apache-airflow==2.8.3
+apache-airflow==2.10.5
 
 # Provider specific
 apache-airflow-providers-google

@@ -1,6 +1,4 @@
-from airflow.models import DAG
-from airflow.operators.empty import EmptyOperator
-from airflow.operators.bash import BashOperator
+from airflow_bdd.compat import DAG, EmptyOperator, BashOperator
 
 with DAG(
     dag_id="simple_dag",
