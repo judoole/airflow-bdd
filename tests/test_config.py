@@ -117,8 +117,30 @@ class TestFindAirflowBddConfig:
         test_file = tmp_path / "tests" / "test_something.py"
         test_file.write_text("# Test file")
         
-        result = find_airflow_bdd_config(str(test_file))
-        assert_that(result, equal_to(str(config_file)))
+        # Mock os.getcwd() to return the project root (parent of tests)
+        # This simulates running pytest from the project root where there's no config
+        with mock.patch('os.getcwd', return_value=str(tmp_path)):
+            result = find_airflow_bdd_config(str(test_file))
+            assert_that(result, equal_to(str(config_file)))
+
+    def test_find_config_in_tests_directory_with_subdirectory(self, tmp_path):
+        """Test finding config in tests directory when test file is in a subdirectory."""
+        # Create tests directory structure with subdirectory
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        subdir = tests_dir / "subdir"
+        subdir.mkdir()
+        config_file = tests_dir / "airflow_bdd_config.py"
+        config_file.write_text("# Test config")
+        
+        test_file = subdir / "test_something.py"
+        test_file.write_text("# Test file")
+        
+        # Mock os.getcwd() to return the project root (parent of tests)
+        # This simulates running pytest from the project root where there's no config
+        with mock.patch('os.getcwd', return_value=str(tmp_path)):
+            result = find_airflow_bdd_config(str(test_file))
+            assert_that(result, equal_to(str(config_file)))
 
     def test_find_config_in_home_directory(self, tmp_path):
         """Test finding config in user's home directory."""
