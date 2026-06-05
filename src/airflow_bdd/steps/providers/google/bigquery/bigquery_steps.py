@@ -39,6 +39,7 @@ def given_table(
         schema: Union[str, List[Dict[str, Any]]],
         project_id: Optional[str] = None,
         dataset_id: Optional[str] = None,
+        clustering_fields: Optional[List[str]] = None,
         context: Optional[Context] = None):
     if "bigquery_client" not in context:
         given_bigquery_client(project_id=project_id)
@@ -46,15 +47,14 @@ def given_table(
     client: bigquery.Client = context["bigquery_client"]
     unique_table_id = f"{project_id or context.config.bigquery.project_id}.{dataset_id or context.config.bigquery.dataset_id}.{table_name}_{str(uuid.uuid4())[:5]}"
 
-    client.create_table(
-        table=bigquery.Table(
-            unique_table_id,            
-            schema=json.loads(open(schema).read()) if isinstance(schema, str) else schema,
-        ),
-        # TODO: Maybe not ok
-        exists_ok=True
+    table = bigquery.Table(
+        unique_table_id,
+        schema=json.loads(open(schema).read()) if isinstance(schema, str) else schema,
     )
+    if clustering_fields:
+        table.clustering_fields = clustering_fields
 
+    client.create_table(table=table, exists_ok=True)  # TODO: Maybe not ok
     context["bigquery_table"] = unique_table_id
     context[table_name] = unique_table_id
 
