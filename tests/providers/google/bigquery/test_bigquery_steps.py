@@ -1,9 +1,9 @@
 import json
-from airflow.models import Connection
 from airflow_bdd.core.decorator import feature
 from airflow_bdd.steps.dag_steps import (
     it, given_a_dag, given_execution_date, given_a_task, when_I_execute_the_task, when_I_render_the_task
 )
+from airflow_bdd.compat import Connection
 from airflow_bdd.steps.providers.google.bigquery.bigquery_steps import (
     bigquery_table_id,
     given_table,
@@ -276,4 +276,3 @@ def test_get_query_job():
     when_I_execute_the_task()
     when_I_get_the_job()
     then(it(), has_property("labels", has_entry("test", equal_to("true"))))
-

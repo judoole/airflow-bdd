@@ -1,4 +1,5 @@
 from hamcrest.core.base_matcher import BaseMatcher
+from airflow_bdd.compat import TaskInstance, XCom
 
 
 class HasXcom(BaseMatcher):
@@ -7,9 +8,6 @@ class HasXcom(BaseMatcher):
         self.value_matcher = value_matcher
 
     def _matches(self, item):
-        from airflow.models.xcom import XCom
-        from airflow.models.taskinstance import TaskInstance
-
         item: TaskInstance
         self._xcom = XCom.get_value(ti_key=item.key, key=self.key)
         if self._xcom is None:

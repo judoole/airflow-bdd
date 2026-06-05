@@ -1,6 +1,12 @@
 # Configuration
 AIRFLOW_VERSION ?= 2.10.5
+AIRFLOW2_VERSION ?= 2.10.5
+AIRFLOW3_VERSION ?= 3.1.7
 VENV := .venv
+VENV_AIRFLOW2 := .venv-airflow-$(AIRFLOW2_VERSION)
+VENV_AIRFLOW3 := .venv-airflow-$(AIRFLOW3_VERSION)
+AIRFLOW2_READY := $(VENV_AIRFLOW2)/.airflow-bdd-ready
+AIRFLOW3_READY := $(VENV_AIRFLOW3)/.airflow-bdd-ready
 ACTIVATE := . $(VENV)/bin/activate
 
 # Use pyenv if available, otherwise fall back to system Python
@@ -16,24 +22,33 @@ endif
 
 CONSTRAINT_URL := https://raw.githubusercontent.com/apache/airflow/constraints-$(AIRFLOW_VERSION)/constraints-$(PYTHON_VERSION).txt
 
-.PHONY: help venv pip-install pip-install-airflow pip-install-other test test-html test-ci clean check-python setup-python
+.PHONY: help venv venv-airflow2 venv-airflow3 pip-install pip-install-airflow pip-install-other pip-install-airflow2 pip-install-airflow3 test test-html test-ci test-airflow2 test-airflow3 test-all clean check-python setup-python
 
 help:
 	@echo "Please use 'make <target>' where <target> is one of"
 	@echo "  setup-python      to ensure Python 3.11 is installed via pyenv"
 	@echo "  venv              to create a virtual environment using venv"
+	@echo "  venv-airflow2     to create the Airflow 2.10.5 virtual environment"
+	@echo "  venv-airflow3     to create the Airflow 3.1.7 virtual environment"
 	@echo "  pip-install       to install all dependencies (Airflow + others)"
 	@echo "  pip-install-airflow  to install Airflow with constraints"
 	@echo "  pip-install-other    to install other dependencies without constraints"
+	@echo "  pip-install-airflow2 to install Airflow 2.10.5 into its own venv"
+	@echo "  pip-install-airflow3 to install Airflow 3.1.7 into its own venv"
 	@echo "  test              to run the tests, using some BDD helper functions"
 	@echo "  test-html         to run the tests, showing a HTML report"
 	@echo "  test-ci           to run the tests for CI. Skipping BigQuery tests"
+	@echo "  test-airflow2     to install and run the Airflow 2.10.5 CI lane"
+	@echo "  test-airflow3     to install and run the Airflow 3.1.7 CI lane"
+	@echo "  test-all          to run both Airflow 2.10.5 and 3.1.7 CI lanes"
 	@echo "  check-python      to check Python version and constraint URL"
 	@echo "  clean             to remove virtual environment"
 	@echo "  help              to show this message"
 	@echo ""
 	@echo "Configuration:"
 	@echo "  AIRFLOW_VERSION=$(AIRFLOW_VERSION)"
+	@echo "  AIRFLOW2_VERSION=$(AIRFLOW2_VERSION)"
+	@echo "  AIRFLOW3_VERSION=$(AIRFLOW3_VERSION)"
 	@echo "  PYTHON_VERSION=$(PYTHON_VERSION)"
 	@echo "  CONSTRAINT_URL=$(CONSTRAINT_URL)"
 	@if [ -n "$(PYENV_AVAILABLE)" ]; then \
@@ -103,21 +118,51 @@ pip-install-airflow: venv
 	@echo "Installing Airflow $(AIRFLOW_VERSION) with constraints..."
 	@echo "Using constraint file: $(CONSTRAINT_URL)"
 	$(ACTIVATE) && pip install --upgrade pip setuptools wheel
-	$(ACTIVATE) && pip install "apache-airflow==$(AIRFLOW_VERSION)" --constraint "$(CONSTRAINT_URL)" || \
+	$(ACTIVATE) && pip install "apache-airflow[google]==$(AIRFLOW_VERSION)" --constraint "$(CONSTRAINT_URL)" || \
 		(echo "Error: Failed to install Airflow. Check Python version compatibility." && exit 1)
 
 # Install other dependencies without constraints (as per Airflow best practices)
 pip-install-other: venv
 	@echo "Installing other dependencies..."
 	$(ACTIVATE) && pip install --upgrade pip
-	$(ACTIVATE) && pip install "apache-airflow==$(AIRFLOW_VERSION)" apache-airflow-providers-google pytest pytest-html PyHamcrest || \
+	$(ACTIVATE) && pip install pytest pytest-html PyHamcrest || \
 		(echo "Error: Failed to install dependencies." && exit 1)
+	$(ACTIVATE) && pip install -e . || \
+		(echo "Error: Failed to install local package." && exit 1)
 
 # Install everything: Airflow with constraints, then other deps
 pip-install: pip-install-airflow pip-install-other
 	@echo ""
 	@echo "Installation complete!"
 	@echo "Run 'make test' to run tests"
+
+venv-airflow2:
+	@$(MAKE) AIRFLOW_VERSION=$(AIRFLOW2_VERSION) VENV=$(VENV_AIRFLOW2) venv
+
+venv-airflow3:
+	@$(MAKE) AIRFLOW_VERSION=$(AIRFLOW3_VERSION) VENV=$(VENV_AIRFLOW3) venv
+
+pip-install-airflow2:
+	@$(MAKE) $(AIRFLOW2_READY)
+
+pip-install-airflow3:
+	@$(MAKE) $(AIRFLOW3_READY)
+
+$(AIRFLOW2_READY): venv-airflow2
+	@if [ -x "$(VENV_AIRFLOW2)/bin/python" ] && $(VENV_AIRFLOW2)/bin/python -c "import airflow, airflow_bdd, pytest" >/dev/null 2>&1; then \
+		echo "Reusing Airflow 2.10.5 venv at $(VENV_AIRFLOW2)"; \
+	else \
+		$(MAKE) AIRFLOW_VERSION=$(AIRFLOW2_VERSION) VENV=$(VENV_AIRFLOW2) pip-install; \
+	fi
+	@touch $@
+
+$(AIRFLOW3_READY): venv-airflow3
+	@if [ -x "$(VENV_AIRFLOW3)/bin/python" ] && $(VENV_AIRFLOW3)/bin/python -c "import airflow, airflow_bdd, pytest" >/dev/null 2>&1; then \
+		echo "Reusing Airflow 3.1.7 venv at $(VENV_AIRFLOW3)"; \
+	else \
+		$(MAKE) AIRFLOW_VERSION=$(AIRFLOW3_VERSION) VENV=$(VENV_AIRFLOW3) pip-install; \
+	fi
+	@touch $@
 
 test: venv
 	@if [ ! -d "$(VENV)" ]; then \
@@ -142,8 +187,17 @@ test-ci: venv
 	fi
 	$(ACTIVATE) && pytest --continue-on-collection-errors -v -rA --color=yes --html=/tmp/turbineflow-test-report.html -m "not bigquery"
 
+test-airflow2:
+	@$(MAKE) $(AIRFLOW2_READY)
+	@$(MAKE) AIRFLOW_VERSION=$(AIRFLOW2_VERSION) VENV=$(VENV_AIRFLOW2) test-ci
+
+test-airflow3:
+	@$(MAKE) $(AIRFLOW3_READY)
+	@$(MAKE) AIRFLOW_VERSION=$(AIRFLOW3_VERSION) VENV=$(VENV_AIRFLOW3) test-ci
+
+test-all: test-airflow2 test-airflow3
+
 clean:
 	@echo "Removing virtual environment..."
-	@rm -rf $(VENV)
+	@rm -rf $(VENV) $(VENV_AIRFLOW2) $(VENV_AIRFLOW3)
 	@echo "Virtual environment removed"	
-
